@@ -1,0 +1,8 @@
+scripts
+__pycache__
+*.json
+src
+pkg
+*.tar.gz
+*zst
+aur
