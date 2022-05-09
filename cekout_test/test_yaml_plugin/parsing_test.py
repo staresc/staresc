@@ -67,8 +67,7 @@ class Parser:
         return part in ["stdout", "stderr", "all"]
 
     rule_type: str  #regex or word
-    regexes: [str]
-    words: [str]
+    rules: [str]
     part: str     #stdout or stderr or all
     condition: str #and/or
 
@@ -82,27 +81,25 @@ class Parser:
         if not self.__class__.__check_part(self.part):        #pythonic? clean?
             raise Exception("unvalid part value!")
 
-        if not "rule" in parser_content:
-            raise Exception("no rule specified in parser definition!")
-        if not "type" in parser_content["rule"]:
-            raise Exception("no type specified for the parser rule!")
+        if not "rule_type" in parser_content:
+            raise Exception("no rule_type specified in parser definition!")
+        if parser_content["rule_type"] != "regex" and parser_content["rule_type"] != "word":         #TODO define function that checks rule_type format
+            raise Exception(f'Unsupported rule_type: {parser_content["rule_type"]}')
+        self.rule_type = parser_content["rule_type"]
 
-        self.condition = "and"
+
         if "condition" in parser_content and parser_content["condition"] != "and" and parser_content["condition"] != "or":
             raise Exception(f'Invalid condition {parser_content["condition"]}')
-
-
-        self.rule_type = parser_content["rule"]["type"]
-        if self.rule_type == "regex":
-            if not "regex" in parser_content["rule"]:
-                raise Exception("regex type but regex field not present!")
-            self.regex = parser_content["rule"]["regex"]
-        elif self.rule_type == "word":
-            if not "word" in parser_content["rule"]:
-                raise Exception("word type but word field not present!")
-            self.word = parser_content["rule"]["word"]
+        if "condition" in parser_content:
+            self.condition = parser_content["condition"]
         else:
-            raise Exception("Invalid rule type")
+            self.condition = "and"
+
+        if (not "rules" in parser_content) or (not isinstance(parser_content["rules"], list)) or (len(parser_content["rules"]) < 1):
+            raise Exception("no rule specified or invalid format")
+        self.rules = parser_content["rules"]
+
+
 
 
 # class that represents a matcher, it is a parser that implements the method match
@@ -123,24 +120,36 @@ class Matcher(Parser):
 
     def __match_regex(self, parts_to_check: [str], result: dict[str, str]) -> (bool, dict[str, str]):
         if self.condition == "and":
-            is_matched = "true"
+            is_matched = True
         elif self.condition == "or":
-            is_matched = "false"
-        #TODO implement matching multiple regex/word
-        for regex in self.regexes:
-            for p in parts_to_check:
-                if re.search(regex, result[p]):
-                    if self.condition == "or":          #one regex that matches is enough
-                        return True
-            if self.condition == "and":         #all regexes must match
-                return False
-        return is_matched
+            is_matched = False
+        else:
+            raise Exception(f"Unsupported condition {self.condition}")
+
+        for regex in self.rules:
+            if any(re.search(regex, result[p]) for p in parts_to_check):
+                if self.condition == "or":          #one regex that matches is enough
+                    return (True, result)
+            elif self.condition == "and":         #all regexes must match
+                    return (False, result)
+        return (is_matched, result)
 
     def __match_word(self, parts_to_check: [str], result: dict[str, str]) -> (bool, dict[str, str]):
-        for p in parts_to_check:
-            if self.word in result[p]:
-                return True
-        return False
+        if self.condition == "and":
+            is_matched = True
+        elif self.condition == "or":
+            is_matched = False
+        else:
+            raise Exception(f"Unsupported condition {self.condition}")
+
+        for word in self.rules:
+            if any(word in result[p] for p in parts_to_check):
+                if self.condition == "or":          #one regex that matches is enough
+                    return (True, result)
+            elif self.condition == "and":         #all word must match
+                return (False, result)
+        return (is_matched, result)
+
 
 # class that represents an extractor, it is a parser that implements the method extract
 class Extractor(Parser):
@@ -163,7 +172,7 @@ class Extractor(Parser):
     def __extract_regex(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:
         extracted_regex = {"stdin": "", "stdout": "", "stderr": "" }                       # TODO return whole text or only the part that matches the regex
         for p in parts_to_check:
-            tmp_ext = re.findall(self.regex, result[p])
+            tmp_ext = re.findall(self.rules[0], result[p])
             if len(tmp_ext) > 1:                                                            # TODO how to handle multiple matches?
                 extracted_regex[p] += tmp_ext[0] #pick only the first match
         return extracted_regex
@@ -171,8 +180,8 @@ class Extractor(Parser):
     def __extract_word(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:    # TODO do we need this method?
         extracted_words = {"stdin": "", "stdout": "", "stderr": "" }
         for p in parts_to_check:
-            if self.word in result[p]:
-                extracted_words[p] += self.word
+            if self.rules[0] in result[p]:
+                extracted_words[p] += self.rules[0]
         return extracted_words
 
 
@@ -200,15 +209,14 @@ class Test:
                 raise Exception("Invalid parser_type value")
 
     # method that, given a result of the command, runs all the parsers (matcher/extractor) on it
-    def parse(self, result: dict[str, str]) -> dict[str, str]:          #TODO implement support for matchers and mixed (pipe of matcher and extractors) parsing, problem: matchers return boolean, not dict[str, str]
+    def parse(self, result: dict[str, str]) -> (bool, dict[str, str]):          #TODO implement support for matchers and mixed (pipe of matcher and extractors) parsing, problem: matchers return boolean, not dict[str, str]
         piped_result: dict[str, str] = result
-
+        piped_boolean_result: bool = True                           #TODO handle not only and condition in piped matchers
 
         if isinstance(self.parsers[0], Extractor):
             parse_mod = "Extractor"
         elif isinstance(self.parsers[0], Matcher):
             parse_mod = "Matcher"
-            if
         else:
             raise Exception("Unknown parser type")
 
@@ -220,13 +228,14 @@ class Test:
                     raise Exception("Mixed parsing Matcher/Extractor not supported yet")
             elif isinstance(parser, Matcher):
                 if parse_mod == "Matcher":
-                    pass
+                    tmp_bool, piped_result = parser.match(piped_result)
+                    piped_boolean_result &= tmp_bool
                 else:
                      raise Exception("Mixed parsing Extractor/Matcher not supported yet")
             else:
                 raise Exception("Unknown parser type")
 
-        return piped_result
+        return piped_boolean_result, piped_result
 
 #class that represents the plugin
 # it contains info about the plugin (eg: id) and the list of tests to performs
@@ -270,7 +279,6 @@ class Plugin:
         ret_str = ""
         for idx in range(len(results)):
             stdout = results[idx]
-        #for idx, stdout in results:
             ret_str += str(self.tests[idx].parse({
                 "stdin": "",                #TODO do we really need to pass stdin?
                 "stdout": stdout,

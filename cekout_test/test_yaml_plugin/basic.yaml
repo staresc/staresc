@@ -4,12 +4,15 @@ tests:
     parsers:
       - parser_type: "extractor"
         part: "stdout"
-        rule:
-          type: regex
-          regex: ".*"
+        rule_type: "regex"
+        rules:
+            - ".*"
   - command: "uname -a"
     parsers:
-      - parser_type: "extractor"
-        rule:
-          type: regex
-          regex: ".*"
+      - parser_type: "matcher"
+        part: "stdout"
+        rule_type: "word"
+        rules:
+            - "machine"
+            - "generic"
+            - "28"
