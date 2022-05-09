@@ -1,0 +1,15 @@
+id: basic
+tests:
+  - command: "whoami"
+    parsers:
+      - parser_type: "extractor"
+        part: "stdout"
+        rule:
+          type: regex
+          regex: ".*"
+  - command: "uname -a"
+    parsers:
+      - parser_type: "extractor"
+        rule:
+          type: regex
+          regex: ".*"

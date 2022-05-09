@@ -6,3 +6,5 @@ pkg
 *.tar.gz
 *zst
 aur
+venv
+.idea
