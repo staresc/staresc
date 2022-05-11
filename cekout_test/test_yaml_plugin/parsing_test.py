@@ -11,12 +11,10 @@ logger = logging.getLogger(__name__)
 
 #results = [
 #        {
-#          "stdin": "/usr/bin/whoami ",
 #          "stdout": "cekout",
 #          "stderr": ""
 #        },
 #        {
-#          "stdin": "/usr/bin/uname -a",
 #          "stdout": "Linux cekout-virtual-machine 5.15.0-27-generic #28-Ubuntu SMP Thu Apr 14 04:55:28 UTC 2022 x86_64 x86_64 x86_64 GNU/Linux",
 #          "stderr": ""
 #        }
@@ -53,7 +51,6 @@ An extractor use a word or a regex, it finds a portion of text based on its rule
 The parsers of a test are executed as a pipeline on the result of the executed command
     the result of the command has the following shape: (TODO chose to keep or not stdin)
         { 
-            "stdin": "",
             "stdout": "",
             "stderr": ""
         }
@@ -170,7 +167,7 @@ class Extractor(Parser):
 
 
     def __extract_regex(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:
-        extracted_regex = {"stdin": "", "stdout": "", "stderr": "" }                       # TODO return whole text or only the part that matches the regex
+        extracted_regex = {"stdout": "", "stderr": "" }                       # TODO return whole text or only the part that matches the regex
         for p in parts_to_check:
             tmp_ext = re.findall(self.rules[0], result[p])
             if len(tmp_ext) > 1:                                                            # TODO how to handle multiple matches?
@@ -178,7 +175,7 @@ class Extractor(Parser):
         return extracted_regex
 
     def __extract_word(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:    # TODO do we need this method?
-        extracted_words = {"stdin": "", "stdout": "", "stderr": "" }
+        extracted_words = {"stdout": "", "stderr": "" }
         for p in parts_to_check:
             if self.rules[0] in result[p]:
                 extracted_words[p] += self.rules[0]
@@ -188,7 +185,7 @@ class Extractor(Parser):
 # class that represents a single test (command and relative parsers)
 class Test:
     command: str
-    parsers: [Parser]                   # TODO maybe distro matcher can be saved here
+    parsers: [Parser]
 
     def __init__(self, test_content: dict):
         if not "command" in test_content:
@@ -241,9 +238,23 @@ class Test:
 # it contains info about the plugin (eg: id) and the list of tests to performs
 # methods get_matcher(), get_command() and parse() implemented for backward compatibility
 class Plugin:
+    # mandatory fields
     tests: [Test]
     id: str
     distribution_matcher: str               # TODO change name, now "matcher" is preserved for retro-compatibility
+
+    # optional plugin info
+    author: str
+    name: str
+    description: str
+    cve: str
+    reference: str
+    cvssv3: float
+    cvssv2: float
+    severity: str
+    remediation: str
+    # TODO tags?
+
 
 
     def __init__(self, plugin_content: dict):
@@ -263,6 +274,12 @@ class Plugin:
         for test_content in plugin_content["tests"]:
             self.tests.append(Test(test_content))
 
+        self.__intialize_opt_info(plugin_content)
+
+    def __intialize_opt_info(self, plugin_content: dict):
+        for info in ["name", "cve", "cvssv3", "cvssv2", "author", "description", "severity", "reference", "remediation"]:
+            if info in plugin_content:
+                setattr(self, info, plugin_content[info])
 
     def get_matcher(self) -> str:
         return self.distribution_matcher
@@ -280,7 +297,6 @@ class Plugin:
         for idx in range(len(results)):
             stdout = results[idx]
             ret_str += str(self.tests[idx].parse({
-                "stdin": "",                #TODO do we really need to pass stdin?
                 "stdout": stdout,
                 "stderr": ""
             })) + "\n\n"

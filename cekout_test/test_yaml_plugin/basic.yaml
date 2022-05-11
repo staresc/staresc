@@ -1,4 +1,12 @@
 id: basic
+author: "cekout"
+name: "basic plugin"
+description: "this is a basic test plugin"
+cve: "nothing"
+reference: "nothing"
+cvssv3: 0
+cvssv2: 0
+severity: "info"
 tests:
   - command: "whoami"
     parsers:
@@ -12,6 +20,7 @@ tests:
       - parser_type: "matcher"
         part: "stdout"
         rule_type: "word"
+        condition: "or"
         rules:
             - "machine"
             - "generic"
