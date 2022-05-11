@@ -289,30 +289,3 @@ class Plugin:
 
     def get_tests(self) -> [Test]:
         return self.tests
-
-    def get_commands(self) -> list:     #TODO del
-        command_list: [str] = []
-        for t in self.tests:
-            command_list.append(t.command)
-        return command_list
-
-    # during parsing, results of the command execution are passed to the pipeline of parser (see above)
-    def parse(self, results: list) -> str:
-        ret_str = ""
-        for idx in range(len(results)):
-            stdout = results[idx]
-            ret_str += str(self.tests[idx].parse({
-                "stdout": stdout,
-                "stderr": ""
-            })) + "\n\n"
-        return ret_str
-
-
-
-def get_commands() -> list:
-    return basic_plugin.get_commands()
-
-
-def parse(output: list) -> str:
-    return basic_plugin.parse(output)
-
