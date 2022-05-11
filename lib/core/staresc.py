@@ -1,11 +1,18 @@
 import os
 import re
 import sys
+import yaml
 from functools import lru_cache
 from typing import Any
 
 from lib.connection import *
 from lib.exception import *
+from .plugin_adapter import *
+
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
 SUPPORTED_SCHEMAS = [ 'ssh', 'tnt']
 
@@ -126,21 +133,26 @@ class Staresc():
         # Load plugin as module
         plugin_basename = os.path.basename(pluginfile)
         plugin_module = os.path.splitext(plugin_basename)[0]
-        plugin = __import__(plugin_module)
 
-        if not re.findall(plugin.get_matcher(), self.osinfo):
+        f = open("cekout_test/test_yaml_plugin/basic.yaml", "r")
+        plugin_content = yaml.load(f.read(), Loader=Loader)
+        f.close()
+        plugin = Plugin(plugin_content)
+
+        if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
             return None
 
         ret_val: dict = {}
-        ret_val['plugin'] = os.path.basename(pluginfile)
+        ret_val['plugin'] = os.path.basename(pluginfile)        # assign plugin name/id
 
         # Run all commands and save the results
         ret_val['results'] = []
-        for cmd in plugin.get_commands():
+        for test in plugin.get_tests():
+            cmd = test.get_command()
             # Try to use absolute paths for the command
             cmd = self.__which(cmd.split(' ')[0]) + ' ' + ' '.join(cmd.split(' ')[1:])
             stdin, stdout, stderr = self.connection.run(cmd)
-            ret_val['results'].append(
+            ret_val['results'].append(                      #results to parse
                 {
                     'stdin'  : stdin,
                     'stdout' : stdout,
@@ -152,17 +164,19 @@ class Staresc():
             ret_val['parsed'] = False
             ret_val['parse_results'] = ''
         else:
-            output_list = []
-            for output in ret_val['results']:
-                output_list.append(output['stdout'])
-            ret_val['parse_results'] = plugin.parse(output_list)
+            ret_val['parse_results'] = []
+            for idx, test_result in enumerate(ret_val['results']):
+                ret_val['parse_results'].append(plugin.get_tests()[idx].parse({
+                    "stdout": test_result["stdout"],
+                    "stderr": test_result["stderr"]
+                }))          # parse tests results
             ret_val['parsed'] = True
 
-        del plugin
+        del plugin                                                                  #delete plugin obj
         return ret_val
 
 
-    def do_offline_parsing(self, pluginfile:str, check_results: dict) -> dict:
+    def do_offline_parsing(self, pluginfile:str, check_results: dict) -> dict:          #TODO adapt this to plugin objects
         basedir = os.path.dirname(pluginfile)
         if basedir not in sys.path:
             sys.path.append(basedir)

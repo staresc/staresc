@@ -25,3 +25,15 @@ tests:
             - "machine"
             - "generic"
             - "28"
+  - command: "uname -a"
+    parsers:
+      - parser_type: "extractor"
+        part: "stdout"
+        rule_type: "regex"
+        rules:
+            - "cekout.*generic"
+      - parser_type: "extractor"
+        part: "stdout"
+        rule_type: "regex"
+        rules:
+            - "g.n.r."

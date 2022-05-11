@@ -51,7 +51,7 @@ def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) 
 
     history = []
     for plugin in os.listdir(plugindir):
-        if plugin.endswith('.py'):
+        if plugin.endswith('.yaml'):
             if not plugindir.startswith('/'):
                 plugindir = os.path.join(os.getcwd(), plugindir)
 
