@@ -107,7 +107,7 @@ class Parser:
     @staticmethod
     def __get_rules(d: dict) -> list:
         if "rules" in d:
-            if isinstance(d["rules"]) and len(d["rules"] >= 1):
+            if isinstance(d["rules"]) and len(d["rules"]) >= 1:
                 return d["rules"]
             else:
                 raise Exception("Invalid rules format")
