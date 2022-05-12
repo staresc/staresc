@@ -1,9 +1,5 @@
 from typing import Tuple
 import re, logging
-try:
-    from yaml import CLoader as Loader, CDumper as Dumper
-except ImportError:
-    from yaml import Loader, Dumper
 
 # Configure logger
 logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -68,7 +64,7 @@ class Parser:
     # rule_type can be "regex" or "word" for matching the command outputs
     rule_type: str
     # rules
-    rules: list(str)
+    rules: list[str]
     # stdout or stderr or all
     parts: list
     # and/or conditions
@@ -135,7 +131,7 @@ class Matcher(Parser):
         super().__init__(parser_content)
 
 
-    def __match_regex(self, parts_to_check: list(str), result: dict[str, str]) -> Tuple(bool, dict[str, str]):
+    def __match_regex(self, parts_to_check: list[str], result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         
         # We have "and"/"or", already validated during __init__, so if it is not "and" is "or"
         is_matched = ( self.condition == "and" )
@@ -151,7 +147,7 @@ class Matcher(Parser):
         return (is_matched, result)
 
 
-    def __match_word(self, parts_to_check: list(str), result: dict[str, str]) -> Tuple(bool, dict[str, str]):
+    def __match_word(self, parts_to_check: list[str], result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         
         # We have "and"/"or", already validated during __init__, so if it is not "and" is "or"
         is_matched = ( self.condition == "and" )
@@ -167,7 +163,7 @@ class Matcher(Parser):
 
     # Method that return true if the given word or regex 
     # (saved during construction, see Parser constructor) is found
-    def match(self, result: dict[str, str]) -> Tuple(bool, dict[str, str]):
+    def match(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         # Not global and centralized enough
         MATCHER_TO_FUNC = {
             "regex" : self.__match_regex,
@@ -223,7 +219,7 @@ class Extractor(Parser):
 # class that represents a single test (command and relative parsers)
 class Test:
     command: str
-    parsers: list(Parser)
+    parsers: list[Parser]
 
     def __init__(self, test_content: dict):
         if not "command" in test_content:
@@ -247,7 +243,7 @@ class Test:
         return self.command
 
     # method that, given a result of the command, runs all the parsers (matcher/extractor) on it
-    def parse(self, result: dict[str, str]) -> Tuple(bool, dict[str, str]):          #TODO implement support for matchers and mixed (pipe of matcher and extractors) parsing, problem: matchers return boolean, not dict[str, str]
+    def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:          #TODO implement support for matchers and mixed (pipe of matcher and extractors) parsing, problem: matchers return boolean, not dict[str, str]
         piped_result: dict[str, str] = result
         piped_boolean_result: bool = True                           #TODO handle not only and condition in piped matchers
 
@@ -280,7 +276,7 @@ class Test:
 # methods get_matcher(), get_command() and parse() implemented for backward compatibility
 class Plugin:
     # mandatory fields
-    tests: list(Test)
+    tests: list[Test]
     id: str
     distribution_matcher: str               # TODO change name, now "matcher" is preserved for retro-compatibility
 
@@ -325,5 +321,5 @@ class Plugin:
     def get_distribution_matcher(self) -> str:
         return self.distribution_matcher
 
-    def get_tests(self) -> [Test]:
+    def get_tests(self) -> list[Test]:
         return self.tests
