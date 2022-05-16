@@ -1,8 +1,5 @@
-import yaml, re, logging
-try:
-    from yaml import CLoader as Loader, CDumper as Dumper
-except ImportError:
-    from yaml import Loader, Dumper
+from typing import Tuple
+import re, logging
 
 # Configure logger
 logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -66,133 +63,171 @@ The parsers of a test are executed as a pipeline on the result of the executed c
 # parent class of matcher and extractor
 # it represents a parser with its rule
 class Parser:
-    @staticmethod
-    def __check_part(part):
-        return part in ["stdout", "stderr", "all"]
 
-    rule_type: str  #regex or word
-    rules: [str]
-    part: str     #stdout or stderr or all
-    condition: str #and/or
+    ALLOWED_PARTS = [ "stdout", "stderr" ]
+    ALLOWED_RULES = [ "regex", "word" ]
+    ALLOWED_CONDS = [ "and", "or" ]
+
+    # rule_type can be "regex" or "word" for matching the command outputs
+    rule_type: str
+    # rules
+    rules: list[str]
+    # stdout or stderr or all
+    parts: list[str]
+    # and/or conditions
+    condition: str
+    
+    @staticmethod
+    def __get_part(d: dict) -> list[str]:
+        if "part" in d:
+            if d["part"] in Parser.ALLOWED_PARTS:
+                return [ d["part"] ]
+            else:
+                raise Exception("Invalid part value!")
+        else:
+            return Parser.ALLOWED_PARTS
+
+    @staticmethod
+    def __get_rule_type(d: dict) -> str:
+        if "rule_type" in d:
+            if d["rule_type"] in Parser.ALLOWED_RULES:
+                return d["rule_type"]
+            else:
+                raise Exception(f'Unsupported rule_type: {d["rule_type"]}')
+        else:
+            raise Exception("No rule_type specified in parser definition!")
+
+    @staticmethod
+    def __get_condition(d: dict) -> str:
+        if "condition" in d:
+            if d["condition"] in Parser.ALLOWED_CONDS:
+                return d["condition"]
+            else:
+                raise Exception(f'Invalid condition {d["condition"]}')
+        else:
+            return "and"
+
+    @staticmethod
+    def __get_rules(d: dict) -> list:
+        if "rules" in d:
+            if isinstance(d["rules"]) and len(d["rules"]) >= 1:
+                return d["rules"]
+            else:
+                raise Exception("Invalid rules format")
+        else:
+            raise Exception("No rule specified")
 
 
     def __init__(self, parser_content: dict):
-        if not "part" in parser_content:      # TODO user can specify more parts in yaml file
-            self.part = "all"
-        else:
-            self.part = parser_content["part"]
 
-        if not self.__class__.__check_part(self.part):        #pythonic? clean?
-            raise Exception("unvalid part value!")
-
-        if not "rule_type" in parser_content:
-            raise Exception("no rule_type specified in parser definition!")
-        if parser_content["rule_type"] != "regex" and parser_content["rule_type"] != "word":         #TODO define function that checks rule_type format
-            raise Exception(f'Unsupported rule_type: {parser_content["rule_type"]}')
-        self.rule_type = parser_content["rule_type"]
-
-
-        if "condition" in parser_content and parser_content["condition"] != "and" and parser_content["condition"] != "or":
-            raise Exception(f'Invalid condition {parser_content["condition"]}')
-        if "condition" in parser_content:
-            self.condition = parser_content["condition"]
-        else:
-            self.condition = "and"
-
-        if (not "rules" in parser_content) or (not isinstance(parser_content["rules"], list)) or (len(parser_content["rules"]) < 1):
-            raise Exception("no rule specified or invalid format")
-        self.rules = parser_content["rules"]
-
-
+        try:
+            # TODO user can specify more parts in yaml file. VERY LOW PRIORITY!!
+            self.parts     = self.__get_part(parser_content)
+            self.rule_type = self.__get_rule_type(parser_content)
+            self.condition = self.__get_condition(parser_content)
+            self.rules     = self.__get_rules(parser_content)
+        
+        except Exception as e:
+            raise e
 
 
 # class that represents a matcher, it is a parser that implements the method match
 class Matcher(Parser):
-    #Method that return true if the given word or regex (saved during construction, see Parser constructor) is found
-    def match(self, result: dict[str, str]) -> (bool, dict[str, str]):
-        parts_to_check: [str] = []
-        if self.part == "all":
-            parts_to_check += ["stdout", "stderr"]     # TODO static centralized way to save possible values for parts 
-        else :
-            parts_to_check.append(self.part)
+
+    def __init__(self, parser_content: dict):
+        super().__init__(parser_content)
+
+
+    def __match_regex(self, parts_to_check: list[str], result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         
-        if self.rule_type == "regex":
-            return self.__match_regex(parts_to_check, result)
-        elif self.rule_type == "word":
-            return self.__match_word(parts_to_check, result)
-
-
-    def __match_regex(self, parts_to_check: [str], result: dict[str, str]) -> (bool, dict[str, str]):
-        if self.condition == "and":
-            is_matched = True
-        elif self.condition == "or":
-            is_matched = False
-        else:
-            raise Exception(f"Unsupported condition {self.condition}")
-
+        # We have "and"/"or", already validated during __init__, so if it is not "and" is "or"
+        is_matched = ( self.condition == "and" )
+        
         for regex in self.rules:
             if any(re.search(regex, result[p]) for p in parts_to_check):
-                if self.condition == "or":          #one regex that matches is enough
+                # one regex that matches is enough
+                if self.condition == "or":
                     return (True, result)
-            elif self.condition == "and":         #all regexes must match
+            # all regexes must match
+            elif self.condition == "and":
                     return (False, result)
         return (is_matched, result)
 
-    def __match_word(self, parts_to_check: [str], result: dict[str, str]) -> (bool, dict[str, str]):
-        if self.condition == "and":
-            is_matched = True
-        elif self.condition == "or":
-            is_matched = False
-        else:
-            raise Exception(f"Unsupported condition {self.condition}")
+
+    def __match_word(self, parts_to_check: list[str], result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
+        
+        # We have "and"/"or", already validated during __init__, so if it is not "and" is "or"
+        is_matched = ( self.condition == "and" )
 
         for word in self.rules:
             if any(word in result[p] for p in parts_to_check):
-                if self.condition == "or":          #one regex that matches is enough
+                # one regex that matches is enough
+                if self.condition == "or":
                     return (True, result)
             elif self.condition == "and":         #all word must match
                 return (False, result)
         return (is_matched, result)
 
+    # Method that return true if the given word or regex 
+    # (saved during construction, see Parser constructor) is found
+    def match(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
+        # Not global and centralized enough
+        MATCHER_TO_FUNC = {
+            "regex" : self.__match_regex,
+            "word"  : self.__match_word
+        }
+        # TODO static centralized way to save possible values for parts
+        # VALE: didn't understand, but "all" logic implemented in parent class
+        # parts_to_check = self.parts
+        return MATCHER_TO_FUNC[self.rule_type](self.parts, result)
+
 
 # class that represents an extractor, it is a parser that implements the method extract
 class Extractor(Parser):
-    #Method that return a dict with the same shape of result one (see 'result of the command' )
-    # it search the given word or regex on result (stdin, stdout and stderr) and return a result with the content it found
-    # eg: result: {stdin: "hello", stdout: "hello how", stderr: "who is "}, regex to match: ".ho" --> ret: {stdin: "", stdout: " ho", stderr: "who"}
-    def extract(self, result: dict[str, str]) -> [str]:
-        parts_to_check: [str] = []
-        if self.part == "all":
-            parts_to_check += ["stdout", "stderr"]  # TODO static centralized way to save possible values for parts
-        else:
-            parts_to_check.append(self.part)
 
-        if self.rule_type == "regex":
-            return self.__extract_regex(parts_to_check, result)
-        elif self.rule_type == "word":
-            return self.__extract_word(parts_to_check, result)
+    def __init__(self, parser_content: dict):
+        super().__init__(parser_content)
 
 
     def __extract_regex(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:
-        extracted_regex = {"stdout": "", "stderr": "" }                       # TODO return whole text or only the part that matches the regex
+        # TODO return whole text or only the part that matches the regex
+        extracted_regex = {"stdout": "", "stderr": "" }
         for p in parts_to_check:
             tmp_ext = re.search(self.rules[0], result[p])
-            if tmp_ext:                                                            # TODO how to handle multiple matches?
-                extracted_regex[p] += tmp_ext.group()                       # extract the part that matches the regex (the first one)
+            # TODO how to handle multiple matches?
+            if tmp_ext:
+                # extract the part that matches the regex (the first one)
+                extracted_regex[p] += tmp_ext.group()
         return extracted_regex
 
-    def __extract_word(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:    # TODO do we need this method?
+
+    # TODO do we need this method?
+    def __extract_word(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:
         extracted_words = {"stdout": "", "stderr": "" }
         for p in parts_to_check:
             if self.rules[0] in result[p]:
                 extracted_words[p] += self.rules[0]
         return extracted_words
+    
+    # Method that return a dict with the same shape of result one (see 'result of the command' )
+    # it search the given word or regex on result (stdin, stdout and stderr) and return a result with the content it found
+    # eg: result: {stdin: "hello", stdout: "hello how", stderr: "who is "}, regex to match: ".ho" --> ret: {stdin: "", stdout: " ho", stderr: "who"}
+    def extract(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
+        # Not global and centralized enough
+        MATCHER_TO_FUNC = {
+            "regex" : self.__extract_regex,
+            "word"  : self.__extract_word
+        }
+        # TODO static centralized way to save possible values for parts
+        # VALE: didn't understand, but "all" logic implemented in parent class
+        # parts_to_check = self.parts
+        return True, MATCHER_TO_FUNC[self.rule_type](self.parts, result)
 
 
 # class that represents a single test (command and relative parsers)
 class Test:
     command: str
-    parsers: [Parser]
+    parsers: list[Parser]
 
     def __init__(self, test_content: dict):
         if not "command" in test_content:
@@ -216,7 +251,7 @@ class Test:
         return self.command
 
     # method that, given a result of the command, runs all the parsers (matcher/extractor) on it
-    def parse(self, result: dict[str, str]) -> (bool, dict[str, str]):          #TODO implement support for matchers and mixed (pipe of matcher and extractors) parsing, problem: matchers return boolean, not dict[str, str]
+    def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:          #TODO implement support for matchers and mixed (pipe of matcher and extractors) parsing, problem: matchers return boolean, not dict[str, str]
         piped_result: dict[str, str] = result
         piped_boolean_result: bool = True                           #TODO handle not only and condition in piped matchers
 
@@ -233,12 +268,12 @@ class Test:
 
         return piped_boolean_result, piped_result
 
-#class that represents the plugin
+# class that represents the plugin
 # it contains info about the plugin (eg: id) and the list of tests to performs
 # methods get_matcher(), get_command() and parse() implemented for backward compatibility
 class Plugin:
     # mandatory fields
-    tests: [Test]
+    tests: list[Test]
     id: str
     distribution_matcher: str               # TODO change name, now "matcher" is preserved for retro-compatibility
 
@@ -283,5 +318,5 @@ class Plugin:
     def get_distribution_matcher(self) -> str:
         return self.distribution_matcher
 
-    def get_tests(self) -> [Test]:
+    def get_tests(self) -> list[Test]:
         return self.tests
