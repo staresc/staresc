@@ -11,4 +11,3 @@ tests:
         rule_type: 'regex'
         rules:
           - '.+'
-1

@@ -110,7 +110,7 @@ class Parser:
     @staticmethod
     def __get_rules(d: dict) -> list:
         if "rules" in d:
-            if isinstance(d["rules"]) and len(d["rules"]) >= 1:
+            if isinstance(d["rules"], list) and len(d["rules"]) >= 1:
                 return d["rules"]
             else:
                 raise Exception("Invalid rules format")
@@ -258,7 +258,7 @@ class Test:
         for parser in self.parsers:
             if isinstance(parser, Extractor):
                 if piped_boolean_result:
-                    piped_result = parser.extract(piped_result)
+                    tmp_bool, piped_result = parser.extract(piped_result)
             elif isinstance(parser, Matcher):
                 if piped_boolean_result:
                     tmp_bool, piped_result = parser.match(piped_result)
