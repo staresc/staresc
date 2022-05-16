@@ -110,7 +110,7 @@ class Parser:
     @staticmethod
     def __get_rules(d: dict) -> list:
         if "rules" in d:
-            if isinstance(d["rules"]) and len(d["rules"]) >= 1:
+            if isinstance(d["rules"], list) and len(d["rules"]) >= 1:
                 return d["rules"]
             else:
                 raise Exception("Invalid rules format")
@@ -129,6 +129,9 @@ class Parser:
         
         except Exception as e:
             raise e
+
+    def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
+        pass
 
 
 # class that represents a matcher, it is a parser that implements the method match
@@ -170,7 +173,7 @@ class Matcher(Parser):
 
     # Method that return true if the given word or regex 
     # (saved during construction, see Parser constructor) is found
-    def match(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
+    def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         # Not global and centralized enough
         MATCHER_TO_FUNC = {
             "regex" : self.__match_regex,
@@ -189,30 +192,34 @@ class Extractor(Parser):
         super().__init__(parser_content)
 
 
-    def __extract_regex(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:
+    def __extract_regex(self, parts_to_check, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         # TODO return whole text or only the part that matches the regex
         extracted_regex = {"stdout": "", "stderr": "" }
+        is_extracted: bool = False
         for p in parts_to_check:
             tmp_ext = re.search(self.rules[0], result[p])
             # TODO how to handle multiple matches?
             if tmp_ext:
+                is_extracted = True
                 # extract the part that matches the regex (the first one)
                 extracted_regex[p] += tmp_ext.group()
-        return extracted_regex
+        return (is_extracted, extracted_regex)
 
 
     # TODO do we need this method?
-    def __extract_word(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:
+    def __extract_word(self, parts_to_check, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         extracted_words = {"stdout": "", "stderr": "" }
+        is_extracted: bool = False
         for p in parts_to_check:
             if self.rules[0] in result[p]:
+                is_extracted = True
                 extracted_words[p] += self.rules[0]
-        return extracted_words
+        return (is_extracted, extracted_words)
     
     # Method that return a dict with the same shape of result one (see 'result of the command' )
     # it search the given word or regex on result (stdin, stdout and stderr) and return a result with the content it found
     # eg: result: {stdin: "hello", stdout: "hello how", stderr: "who is "}, regex to match: ".ho" --> ret: {stdin: "", stdout: " ho", stderr: "who"}
-    def extract(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
+    def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         # Not global and centralized enough
         MATCHER_TO_FUNC = {
             "regex" : self.__extract_regex,
@@ -221,7 +228,7 @@ class Extractor(Parser):
         # TODO static centralized way to save possible values for parts
         # VALE: didn't understand, but "all" logic implemented in parent class
         # parts_to_check = self.parts
-        return True, MATCHER_TO_FUNC[self.rule_type](self.parts, result)
+        return MATCHER_TO_FUNC[self.rule_type](self.parts, result)
 
 
 # class that represents a single test (command and relative parsers)
@@ -256,15 +263,8 @@ class Test:
         piped_boolean_result: bool = True                           #TODO handle not only and condition in piped matchers
 
         for parser in self.parsers:
-            if isinstance(parser, Extractor):
-                if piped_boolean_result:
-                    piped_result = parser.extract(piped_result)
-            elif isinstance(parser, Matcher):
-                if piped_boolean_result:
-                    tmp_bool, piped_result = parser.match(piped_result)
-                    piped_boolean_result &= tmp_bool
-            else:
-                raise Exception("Unknown parser type")
+            tmp_bool, piped_result = parser.parse(piped_result)
+            piped_boolean_result &= tmp_bool
 
         return piped_boolean_result, piped_result
 
