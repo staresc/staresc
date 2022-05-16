@@ -1,0 +1,13 @@
+id: 'python2'
+author: 'cekout'
+name: 'python2'
+description: 'Check if python 2 is installed'
+severity: 'TODO'
+tests:
+  - command: 'for e in $( find / -type f -name "*python[0-9]*" 2>/dev/null ); do if [ -x "$e" ] && ! { echo "$e" | grep "\.so\|/usr/lib" >/dev/null; }; then ver=$( $e -c "import platform; major, minor, patch = platform.python_version_tuple(); print(major)" 2>/dev/null ) ; [ "$ver" = "2" ] && echo "$e"; fi; done'
+    parsers:
+      - parser_type: 'matcher'
+        part: 'stdout'
+        rule_type: 'regex'
+        rules:
+          - '.+'

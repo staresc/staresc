@@ -1,0 +1,13 @@
+id: 'ssh-privkey'
+author: 'cekout'
+name: 'ssh-privkey'
+description: 'Check if there are readable private keys in ~/.ssh/ directory '
+severity: 'medium'
+tests:
+  - command: 'grep -H "PRIVATE" /home/**/.ssh/*'
+    parsers:
+      - parser_type: 'matcher'
+        part: 'stdout'
+        rule_type: 'word'
+        rules:
+          - 'PRIVATE'

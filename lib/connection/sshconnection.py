@@ -46,6 +46,7 @@ class SSHConnection(Connection):
             cmd = f"su {u} -c '{cmd}'"
  
         try:
+            #print(f'cmd: {cmd}') #debug
             stdin, stdout, stderr = self.client.exec_command(cmd, get_pty=True, timeout=25)
             if u != "" and p != "":
                 stdout.channel.recv(1024)
