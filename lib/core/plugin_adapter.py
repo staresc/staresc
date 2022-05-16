@@ -64,7 +64,7 @@ The parsers of a test are executed as a pipeline on the result of the executed c
 # it represents a parser with its rule
 class Parser:
 
-    ALLOWED_PARTS = [ "stdout", "stderr", "all" ]
+    ALLOWED_PARTS = [ "stdout", "stderr" ]
     ALLOWED_RULES = [ "regex", "word" ]
     ALLOWED_CONDS = [ "and", "or" ]
 
@@ -73,15 +73,15 @@ class Parser:
     # rules
     rules: list[str]
     # stdout or stderr or all
-    parts: list
+    parts: list[str]
     # and/or conditions
     condition: str
     
     @staticmethod
-    def __get_part(d: dict) -> str:
+    def __get_part(d: dict) -> list[str]:
         if "part" in d:
             if d["part"] in Parser.ALLOWED_PARTS:
-                return d["part"]
+                return [ d["part"] ]
             else:
                 raise Exception("Invalid part value!")
         else:
@@ -212,7 +212,7 @@ class Extractor(Parser):
     # Method that return a dict with the same shape of result one (see 'result of the command' )
     # it search the given word or regex on result (stdin, stdout and stderr) and return a result with the content it found
     # eg: result: {stdin: "hello", stdout: "hello how", stderr: "who is "}, regex to match: ".ho" --> ret: {stdin: "", stdout: " ho", stderr: "who"}
-    def extract(self, result: dict[str, str]) -> list(str):
+    def extract(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         # Not global and centralized enough
         MATCHER_TO_FUNC = {
             "regex" : self.__extract_regex,
@@ -221,7 +221,7 @@ class Extractor(Parser):
         # TODO static centralized way to save possible values for parts
         # VALE: didn't understand, but "all" logic implemented in parent class
         # parts_to_check = self.parts
-        return MATCHER_TO_FUNC[self.rule_type](self.parts, result)
+        return True, MATCHER_TO_FUNC[self.rule_type](self.parts, result)
 
 
 # class that represents a single test (command and relative parsers)
