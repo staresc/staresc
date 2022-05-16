@@ -8,3 +8,4 @@ pkg
 aur
 venv
 .idea
+test_targets.txt

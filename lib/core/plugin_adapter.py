@@ -21,31 +21,38 @@ logger = logging.getLogger(__name__)
 #]
 
 
-'''basic structure of the yaml file
-{
-    'id': 'basic',                                          # id of the plugin
-    'tests': [{                                             # list of the test (commands to check) to perform
-            'command': 'whoami',                            # command to test
-            'parsers': [{                                   # list of the parsers (matcher/extractor) to run on the result of the command
-                    'parser_type': 'extractor',             # type of the parser, can be matcher or extractor, matcher is not supported yet
-                    'part': 'stdout',
-                    'rule': {                               # rule of the parser, can be a regex or a word finder
-                        type: 'regex'                       
-                        'regex': ['*']
-                    
-            }]
-        },
-        {
-            'command': 'uname -a',
-            'parsers': [{
-                    'parser_type': 'extractor',
-                    'rule': {
-                        type: 'regex'
-                        'regex': ['*']
-                    
-            }]
-        }]
-}
+'''structure of the yaml file
+id: 'CVE-2021-3156'                                         # id of the plugin
+author: 'cekout'
+name: 'sudoedit -s'
+description: 'Check if sudo is vulnerable to sudoedit -s heap-based buffer overflow'
+cve: 'CVE-2021-3156'
+reference: 'https://nvd.nist.gov/vuln/detail/CVE-2021-3156'
+cvssv3: 7.8
+cvssv2: 0
+severity: 'high'
+tests:                                                              # list of the test (commands to check) to perform
+  - command: 'sudoedit -s "1234567890123456789012\\"'               # command to test
+    parsers:                                                        # list of the parsers (matcher/extractor) to run on the result of the command
+      - parser_type: 'matcher'                                      # type of the parser
+        part: 'all'                                                 # part of the output of the command to analyze (stdout/stderr)
+        rule_type: 'word'                                           # type of rules of the parser
+        condition: 'or'                                             # how the matcher evaluate rules, or -> one match is enough, and -> all rules should match
+        rules:                                                      # list of rules
+          - 'memory'
+          - 'Error'
+          - 'Backtrace'
+  - command: 'sudo --version'
+    parsers:
+      - parser_type: 'extractor'            
+        rule_type: 'regex'      
+        rules:
+          - 'Sudo version .*\n'                                     # regex to extract, only the text that match the regex is extracted, IMPORTANT: keep regex in a string with single quotes (double quotes could broke yaml parser)
+      - parser_type: 'extractor'                                    # output of the first extractor is piped as input for the second extraxtor
+        rule_type: 'regex'
+        rules:
+          - '(\d+\.)(\d+\.)(\.)?(\d)'
+
 
 An extractor use a word or a regex, it finds a portion of text based on its rule and extracts it
 The parsers of a test are executed as a pipeline on the result of the executed command
@@ -169,9 +176,9 @@ class Extractor(Parser):
     def __extract_regex(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:
         extracted_regex = {"stdout": "", "stderr": "" }                       # TODO return whole text or only the part that matches the regex
         for p in parts_to_check:
-            tmp_ext = re.findall(self.rules[0], result[p])
-            if len(tmp_ext) >= 1:                                                            # TODO how to handle multiple matches?
-                extracted_regex[p] += tmp_ext[0] #pick only the first match
+            tmp_ext = re.search(self.rules[0], result[p])
+            if tmp_ext:                                                            # TODO how to handle multiple matches?
+                extracted_regex[p] += tmp_ext.group()                       # extract the part that matches the regex (the first one)
         return extracted_regex
 
     def __extract_word(self, parts_to_check, result: dict[str, str]) -> dict[str, str]:    # TODO do we need this method?
@@ -213,25 +220,14 @@ class Test:
         piped_result: dict[str, str] = result
         piped_boolean_result: bool = True                           #TODO handle not only and condition in piped matchers
 
-        if isinstance(self.parsers[0], Extractor):
-            parse_mod = "Extractor"
-        elif isinstance(self.parsers[0], Matcher):
-            parse_mod = "Matcher"
-        else:
-            raise Exception("Unknown parser type")
-
         for parser in self.parsers:
             if isinstance(parser, Extractor):
-                if parse_mod == "Extractor":
+                if piped_boolean_result:
                     piped_result = parser.extract(piped_result)
-                else:
-                    raise Exception("Mixed parsing Matcher/Extractor not supported yet")
             elif isinstance(parser, Matcher):
-                if parse_mod == "Matcher":
+                if piped_boolean_result:
                     tmp_bool, piped_result = parser.match(piped_result)
                     piped_boolean_result &= tmp_bool
-                else:
-                     raise Exception("Mixed parsing Extractor/Matcher not supported yet")
             else:
                 raise Exception("Unknown parser type")
 

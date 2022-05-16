@@ -142,7 +142,7 @@ if __name__ == '__main__':
                 print(f"{target} generated an exception: {e}")
             else:
                 now = datetime.now()
-                outfile = f"{now.year}-{now.month}-{now.day}-{now.hour}:{now.minute}:{now.second}-{Connection.get_hostname(target)}.json"
+                outfile = f"{now.year}-{now.month}-{now.day}-{now.hour}:{now.minute}:{now.second}-{Connection.get_hostname(target)}:{Connection.get_port(target)}.json"
                 write(dump, outfile)
                 logger.info(f"Results written: {outfile}")
              

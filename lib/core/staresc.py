@@ -134,7 +134,7 @@ class Staresc():
         plugin_basename = os.path.basename(pluginfile)
         plugin_module = os.path.splitext(plugin_basename)[0]
 
-        f = open("cekout_test/test_yaml_plugin/basic.yaml", "r")
+        f = open(pluginfile, "r")
         plugin_content = yaml.load(f.read(), Loader=Loader)
         f.close()
         plugin = Plugin(plugin_content)
