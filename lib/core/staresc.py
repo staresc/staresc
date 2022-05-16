@@ -71,7 +71,7 @@ class Staresc():
         return s
 
 
-    def __elevate(self) -> bool:
+    def elevate(self) -> bool:
         return self.connection.elevate()
 
 
