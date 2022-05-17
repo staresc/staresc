@@ -31,7 +31,7 @@ publish:
 
 test:
 	docker-compose --file ./test/docker-compose.yaml up -d --build
-	# Run tests python3 ./test/run.py
+	python ./run.py
 	docker-compose --file ./test/docker-compose.yaml down
 
 clean:

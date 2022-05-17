@@ -1,5 +1,0 @@
-ssh://user:pass@127.0.0.1:10022/root:toor
-telnet://user:pass@127.0.0.1:10023/root:toor
-ssh://user:pass@127.0.0.1:10024/root:toor
-telnet://user:pass@127.0.0.1:10025/root:toor
-ssh://u:p@127.0.0.1:10032/not:existent
