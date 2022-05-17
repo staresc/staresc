@@ -1,9 +1,13 @@
-#!/usr/bin/python3 -W ignore::DeprecationWarning
+#!/usr/bin/python3 -Wignore
 
 import unittest
 import paramiko
+import os
+import json
 
-from lib.connection.sshconnection import SSHConnection, TNTConnection
+from lib.connection.sshconnection import SSHConnection
+from lib.connection.tntconnection import TNTConnection
+from lib.core.staresc import Staresc
 
 PLUGINDIR = "./test/plugins/"
 
@@ -17,7 +21,10 @@ TNT_REACHABLETARGETS = [
     "tnt://user:pass@127.0.0.1:10025/",
 ]
 
-UNREACHABLE_TARGET = "ssh://u:p@127.0.0.1:10032/not:existent"
+UNREACHABLE_TARGETS = [ 
+    "ssh://u:p@127.0.0.1:10032/",
+    "tnt://u:p@127.0.0.1:10032/",
+]
 
 
 class TestConnection(unittest.TestCase):
@@ -38,6 +45,9 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(stderr2, "", "Should be empty")
 
 
+    """
+    Disabled for now, has to be enabled when telnet will be reliable
+
     def test_telnet_connection(self):
         c1 = TNTConnection(TNT_REACHABLETARGETS[0])
         c1.connect()
@@ -52,28 +62,126 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(stdin2, "echo test", "Should be 'echo test'")
         self.assertEqual(stdout2, "test", "Should echo 'test'")
         self.assertEqual(stderr2, "", "Should be empty")
+    """
 
-    
     def test_unreachable(self):
         try:
-            c = SSHConnection(UNREACHABLE_TARGET)
-            c.connect()
+            c1 = SSHConnection(UNREACHABLE_TARGETS[0])
+            c1.connect()
         except Exception as e:
             self.assertTrue(isinstance(e, paramiko.ssh_exception.NoValidConnectionsError))
 
+        try:
+            c2 = TNTConnection(UNREACHABLE_TARGETS[1])
+            c2.connect()
+        # Exception during telnetlib OSError during write() and EOFError during read()
+        except Exception as e:
+            self.assertTrue(
+                isinstance(e, OSError) or isinstance(e, EOFError)
+            )
+
 
 class TestStaresc(unittest.TestCase):
+
+
+    def test_CVE20213156_plugin_execution_on_vulnerable(self):
+        # Prepare object
+        se = Staresc(SSH_REACHABLETARGETS[0])
+        se.prepare()
+
+        # check for CVE-2021-3156
+        plugin = os.path.join(os.getcwd(), PLUGINDIR, "CVE-2021-3156.yaml")        
+        out = se.do_check(plugin, True)
+        
+        # Assert result is not empty
+        self.assertTrue(out != None)
+
+        # We expect this output:
+        expected_str = """{"plugin": "CVE-2021-3156.yaml", "results": [{"stdin": "sudoedit -s '0123456789\\\\'", "stdout": "munmap_chunk(): invalid pointer", "stderr": ""}, {"stdin": "/usr/local/bin/sudo --version", "stdout": "Sudo version 1.8.31p2\\r\\nSudoers policy plugin version 1.8.31p2\\r\\nSudoers file grammar version 46\\r\\nSudoers I/O plugin version 1.8.31p2", "stderr": ""}], "parse_results": [[false, {"stdout": "munmap_chunk(): invalid pointer", "stderr": ""}], [true, {"stdout": "1.8.3", "stderr": ""}]], "parsed": true}"""
+        expected = json.loads(expected_str)
+
+        # Adjust for tuples -> list
+        sub = []
+        for i in out['parse_results']:
+            sub.append(list(i))
+        out['parse_results'] = sub
+
+        self.assertEqual(expected, out, f"Output should be equals to expected \n\n{out}\n\n{expected}" )
+
     
-    def test_elevate(self):
-        pass
+    def test_lxc_plugin_execution_on_vulnerable(self):
+        # Prepare object
+        se = Staresc(SSH_REACHABLETARGETS[0])
+        se.prepare()
 
+        # check for CVE-2021-3156
+        plugin = os.path.join(os.getcwd(), PLUGINDIR, "lxc.yaml")        
+        out = se.do_check(plugin, True)
+        
+        # Assert result is not empty
+        self.assertTrue(out != None)
 
-    def test_plugin_execution_on_vulnerable(self):
-        pass
+        # We expect this output:
+        expected_str = """{"plugin":"lxc.yaml","results":[{"stdin":"command -v lxc-attach lxc-checkpoint lxc-create lxc-freeze lxc-snapshot lxc-unfreeze lxc-wait lxc-autostart lxc-config lxc-destroy lxc-info lxc-start lxc-unshare lxc-cgroup lxc-console lxc-device lxc-ls lxc-stop lxc-update-config lxc-checkconfig lxc-copy lxc-execute lxc-monitor lxc-top lxc-usernsexec","stdout": "/usr/bin/lxc-attach\\r\\n/usr/bin/lxc-checkpoint\\r\\n/usr/bin/lxc-create\\r\\n/usr/bin/lxc-freeze\\r\\n/usr/bin/lxc-snapshot\\r\\n/usr/bin/lxc-unfreeze\\r\\n/usr/bin/lxc-wait\\r\\n/usr/bin/lxc-autostart\\r\\n/usr/bin/lxc-config\\r\\n/usr/bin/lxc-destroy\\r\\n/usr/bin/lxc-info\\r\\n/usr/bin/lxc-start\\r\\n/usr/bin/lxc-unshare\\r\\n/usr/bin/lxc-cgroup\\r\\n/usr/bin/lxc-console\\r\\n/usr/bin/lxc-device\\r\\n/usr/bin/lxc-ls\\r\\n/usr/bin/lxc-stop\\r\\n/usr/bin/lxc-update-config\\r\\n/usr/bin/lxc-checkconfig\\r\\n/usr/bin/lxc-copy\\r\\n/usr/bin/lxc-execute\\r\\n/usr/bin/lxc-monitor\\r\\n/usr/bin/lxc-top\\r\\n/usr/bin/lxc-usernsexec","stderr": ""}],"parse_results": [[true,{"stdout": "/usr/bin/lxc-attach\\r\\n/usr/bin/lxc-checkpoint\\r\\n/usr/bin/lxc-create\\r\\n/usr/bin/lxc-freeze\\r\\n/usr/bin/lxc-snapshot\\r\\n/usr/bin/lxc-unfreeze\\r\\n/usr/bin/lxc-wait\\r\\n/usr/bin/lxc-autostart\\r\\n/usr/bin/lxc-config\\r\\n/usr/bin/lxc-destroy\\r\\n/usr/bin/lxc-info\\r\\n/usr/bin/lxc-start\\r\\n/usr/bin/lxc-unshare\\r\\n/usr/bin/lxc-cgroup\\r\\n/usr/bin/lxc-console\\r\\n/usr/bin/lxc-device\\r\\n/usr/bin/lxc-ls\\r\\n/usr/bin/lxc-stop\\r\\n/usr/bin/lxc-update-config\\r\\n/usr/bin/lxc-checkconfig\\r\\n/usr/bin/lxc-copy\\r\\n/usr/bin/lxc-execute\\r\\n/usr/bin/lxc-monitor\\r\\n/usr/bin/lxc-top\\r\\n/usr/bin/lxc-usernsexec","stderr": ""}]],"parsed": true}"""
+        expected = json.loads(expected_str)
+
+        # Adjust for tuples -> list
+        sub = []
+        for i in out['parse_results']:
+            sub.append(list(i))
+        out['parse_results'] = sub
+
+        self.assertEqual(expected, out, f"Output should be equals to expected \n\n{out}\n\n{expected}" )
 
     
-    def test_plugin_execution_on_patched(self):
-        pass
+    def test_CVE20213156_plugin_execution_on_patched(self):
+        # Prepare object
+        se = Staresc(SSH_REACHABLETARGETS[1])
+        se.prepare()
+
+        # check for CVE-2021-3156
+        plugin = os.path.join(os.getcwd(), PLUGINDIR, "CVE-2021-3156.yaml")        
+        out = se.do_check(plugin, True)
+        
+        # Assert result is not empty
+        self.assertTrue(out != None)
+
+        # We expect this output:
+        expected_str = """{"plugin": "CVE-2021-3156.yaml","results": [{"stdin": "sudoedit -s '0123456789\\\\'","stdout": "bash: sudoedit: command not found","stderr": ""},{"stdin": "sudo --version","stdout": "bash: sudo: command not found","stderr": ""}],"parse_results": [[false,{"stdout": "bash: sudoedit: command not found","stderr": ""}],[false,{"stdout": "","stderr": ""}]],"parsed": true}"""
+        expected = json.loads(expected_str)
+
+        # Adjust for tuples -> list
+        sub = []
+        for i in out['parse_results']:
+            sub.append(list(i))
+        out['parse_results'] = sub
+
+        self.assertEqual(expected, out, f"Output should be equals to expected \n\n{out}\n\n{expected}" )
+
+
+    def test_lxc_plugin_execution_on_patched(self):
+        # Prepare object
+        se = Staresc(SSH_REACHABLETARGETS[1])
+        se.prepare()
+
+        # check for CVE-2021-3156
+        plugin = os.path.join(os.getcwd(), PLUGINDIR, "lxc.yaml")        
+        out = se.do_check(plugin, True)
+        
+        # Assert result is not empty
+        self.assertTrue(out != None)
+
+        # We expect this output:
+        expected_str = """{"plugin": "lxc.yaml","results": [{"stdin": "command -v lxc-attach lxc-checkpoint lxc-create lxc-freeze lxc-snapshot lxc-unfreeze lxc-wait lxc-autostart lxc-config lxc-destroy lxc-info lxc-start lxc-unshare lxc-cgroup lxc-console lxc-device lxc-ls lxc-stop lxc-update-config lxc-checkconfig lxc-copy lxc-execute lxc-monitor lxc-top lxc-usernsexec","stdout": "","stderr": ""}],"parse_results": [[false,{"stdout": "","stderr": ""}]],"parsed": true}"""
+        expected = json.loads(expected_str)
+
+        # Adjust for tuples -> list
+        sub = []
+        for i in out['parse_results']:
+            sub.append(list(i))
+        out['parse_results'] = sub
+
+        self.assertEqual(expected, out, f"Output should be equals to expected \n\n{out}\n\n{expected}" )
 
 
 
