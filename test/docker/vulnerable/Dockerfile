@@ -31,4 +31,6 @@ EXPOSE 23
 # Set root password to "toor"
 RUN sed -i "s/root:\*/root:\$6\$msg7fWs4mQJehet\/\$cbm2Yf1BYzPeFkYENkKFmXUNw5SyKqiovjvYAF1KMlbEojplbYaGZ9GSDvyw8b9ej8nwfbr4W5t4aokk6uvJR./g" /etc/shadow
 
+RUN echo "user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
 ENTRYPOINT service ssh restart && /etc/init.d/xinetd restart && tail -f /dev/null
