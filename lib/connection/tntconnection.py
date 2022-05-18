@@ -27,27 +27,23 @@ class TNTConnection(Connection):
         self.client.read_until(b"Password: ")
         self.client.write(pwd.encode('ascii') + b"\n")
 
+        delimiter_canary = binascii.b2a_hex(os.urandom(15))
+        self.client.write(b'echo ' + delimiter_canary + b'\n')
+
         # consume output on channel
-        time.sleep(1)
-        self.client.read_very_eager()
+        output2 = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=1)
 
 
     def run(self, cmd: str) -> Tuple[str, str, str]:
         try:
             delimiter_canary = binascii.b2a_hex(os.urandom(15))
-            self.client.write(cmd.encode('ascii') + b"; echo " + delimiter_canary + b"\n")
-            stdout = b''
-            while stdout == b'' or not (b'\r\n' + delimiter_canary + b'\r\n' )  in stdout:
-                time.sleep(1)
-                stdout += self.client.read_very_eager()
+            self.client.write(cmd.encode('ascii') + b"; echo " + delimiter_canary + b'\n')
+            stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n')
         except Exception as e:
             raise e
 
         # extract from stdout the output of cmd
-        stdout = stdout.split(b'\r\n' + delimiter_canary + b'\r\n')[-2]
-        if (delimiter_canary + b'\r\n') in stdout:
-            stdout = stdout.split(delimiter_canary + b'\r\n')[1]
-        stdout += b'\r\n'
+        stdout = stdout.split(delimiter_canary + b'\r\n')[1]
         stdout = stdout.decode('ascii')
         return cmd, stdout, None
 
@@ -56,17 +52,18 @@ class TNTConnection(Connection):
         root_username, root_passwd = super().get_root_credentials(self.connection)
         if root_username == '' or root_passwd == '':
             return False
+        root_username = root_username.encode('ascii')
+        root_passwd = root_passwd.encode('ascii')
 
-        self.client.write(f'su -c "whoami" {root_username}\n'.encode('ascii'))
-        time.sleep(0.5)
-        passwd_prompt = self.client.read_very_eager()
+        delimiter_canary = binascii.b2a_hex(os.urandom(15))
+        self.client.write(b'su -c "echo ' + delimiter_canary + b'" ' + root_username + b'\r\n')
+        passwd_prompt = self.client.read_until(b'Password: ', timeout=1)
         if not b"Password: " in passwd_prompt:
             return False
-        self.client.write(root_passwd.encode('ascii') + b'\n')
-        time.sleep(0.5)
-        stdout = self.client.read_very_eager()
-        # extract username
-        stdout = stdout.split(b'\r\n')[1]
-        if stdout.decode('ascii') == root_username:
+
+        self.client.write(root_passwd + b'\n')
+        stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=1)
+        # check username
+        if (b'\r\n' + delimiter_canary + b'\r\n') in stdout:
             return True
         return False
