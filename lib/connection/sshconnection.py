@@ -48,7 +48,7 @@ class SSHConnection(Connection):
             cmd = f"su {u} -c '{cmd}'"
 
         canary = binascii.b2a_hex(os.urandom(15))
-        cmd = f"{cmd}; echo {canary}"
+        _cmd = f"{cmd}; echo {canary.decode('utf-8')}"
         try:
             stdin, stdout, stderr = self.client.exec_command(cmd, get_pty=True, timeout=25)
             if u != "" and p != "":
