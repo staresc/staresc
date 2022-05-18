@@ -34,7 +34,7 @@ class Connection():
         return p.username, p.password
 
     @staticmethod
-    def get_root_credentails(connection: str) -> Tuple[str, str]:
+    def get_root_credentials(connection: str) -> Tuple[str, str]:
         path = urlparse(connection).path
         if path.count(':') != 1:
             return '', ''

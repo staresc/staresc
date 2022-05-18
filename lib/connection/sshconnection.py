@@ -39,19 +39,9 @@ class SSHConnection(Connection):
 
     
     def run(self, cmd: str) -> Tuple[str, str, str]:
-
-        u, p = self.get_root_credentails(self.connection)
-        if u != "" and p != "":
-            cmd = cmd.replace('\'', '"')
-            cmd = f"su {u} -c '{cmd}'"
- 
         try:
             #print(f'cmd: {cmd}') #debug
             stdin, stdout, stderr = self.client.exec_command(cmd, get_pty=True, timeout=25)
-            if u != "" and p != "":
-                stdout.channel.recv(1024)
-                stdin.write(f"{p}\n")
-                stdin.flush()
 
             o_stdin  = cmd
             o_stdout = self.__get_string_from_channel(stdout).strip("\r\n")
@@ -61,6 +51,21 @@ class SSHConnection(Connection):
             raise e
 
         return o_stdin, o_stdout, o_stderr
+
+    def elevate(self) -> bool:
+        root_username, root_passwd = super().get_root_credentials(self.connection)
+        if root_username == '' or root_passwd == '':
+            return False
+
+        stdin, stdout, stderr = self.client.exec_command(f'su -c "whoami" {root_username}', get_pty=True, timeout=25)
+        if stdout.channel.recv(1024) != b'Password: ':
+            # Wrong username
+            return False
+        stdin.channel.send(root_passwd + '\r\n')
+        if stdout.read(1024).strip().decode("utf-8") == root_username:
+            return True
+        else:
+            return False
 
 
     def __get_string_from_channel(self, channel):
