@@ -1,0 +1,13 @@
+id: 'lxc'
+author: 'cekout'
+name: 'lxc'
+description: 'Check if lxc is installed'
+severity: 'TODO'
+tests:
+  - command: 'command -v lxc-attach lxc-checkpoint lxc-create lxc-freeze lxc-snapshot lxc-unfreeze lxc-wait lxc-autostart lxc-config lxc-destroy lxc-info lxc-start lxc-unshare lxc-cgroup lxc-console lxc-device lxc-ls lxc-stop lxc-update-config lxc-checkconfig lxc-copy lxc-execute lxc-monitor lxc-top lxc-usernsexec'
+    parsers:
+      - parser_type: 'matcher'
+        part: 'stdout'
+        rule_type: 'regex'
+        rules:
+          - '.+'

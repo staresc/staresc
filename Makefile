@@ -29,6 +29,11 @@ publish:
 	git --git-dir=aur/.git --work-tree=aur commit "New version"
 	git --git-dir=aur/.git --work-tree=aur push origin master
 
+unittest:
+	docker-compose --file ./test/docker/docker-compose.yaml up -d --build
+	python ./test.py
+	docker-compose --file ./test/docker/docker-compose.yaml down
+
 clean:
 	rm -rf pkg src *tar.gz *zst aur
 
