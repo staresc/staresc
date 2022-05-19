@@ -1,26 +1,30 @@
+from base64 import decode
 import paramiko
+import os
+import binascii
 from typing import Tuple
 
 from .connection import Connection
 
 
 class SSHConnection(Connection):
-    
+
+    client: paramiko.SSHClient
+
     def __init__(self, connection: str) -> None:
         super().__init__(connection)
-
+        self.client = paramiko.SSHClient()
 
     @staticmethod
     def match_scheme(s: str) -> bool:
         return s == "ssh"
 
 
-    def connect(self) -> None:
+    def connect(self):
         host = self.get_hostname(self.connection)
         port = self.get_port(self.connection)
         usr, pwd = self.get_credentials(self.connection)
 
-        self.client = paramiko.SSHClient()
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         if "/" in pwd:
             self.client.connect(
@@ -36,21 +40,33 @@ class SSHConnection(Connection):
                 username=usr,
                 password=pwd
             )
+            
 
-    
     def run(self, cmd: str) -> Tuple[str, str, str]:
+
+        bufsize = 4096
+
         try:
-            #print(f'cmd: {cmd}') #debug
-            stdin, stdout, stderr = self.client.exec_command(cmd, get_pty=True, timeout=25)
+          
+            self.client.get_transport().set_keepalive(5)
+            chan = self.client.get_transport().open_session()
+            chan.get_pty(
+                term=os.getenv('TERM', 'vt100'), 
+                width=int(os.getenv('COLUMNS', 0)), 
+                height=int(os.getenv('LINES', 0))
+                )
 
-            o_stdin  = cmd
-            o_stdout = self.__get_string_from_channel(stdout).strip("\r\n")
-            o_stderr = self.__get_string_from_channel(stderr).strip("\r\n")
+            chan.exec_command(cmd)
 
-        except Exception as e:
+            stdin = cmd
+            stdout = b''.join(chan.makefile('rb', bufsize))
+            stderr = b''.join(chan.makefile_stderr('rb', bufsize))
+          
+          except Exception as e:
             raise e
+         
+        return stdin, stdout.rstrip(b"\r\n").decode("utf-8"), stderr.rstrip(b"\r\n").decode("utf-8")
 
-        return o_stdin, o_stdout, o_stderr
 
     def elevate(self) -> bool:
         root_username, root_passwd = super().get_root_credentials(self.connection)
@@ -65,17 +81,5 @@ class SSHConnection(Connection):
         if stdout.read(1024).strip().decode("utf-8") == root_username:
             return True
         else:
-            return False
-
-
-    def __get_string_from_channel(self, channel):
-        data = b''
-        while not channel.channel.exit_status_ready():
-            if channel.channel.recv_ready():
-                data =  channel.channel.recv(1024)
-                prevdata = b" "
-                while prevdata:
-                    prevdata = channel.channel.recv(1024)
-                    data += prevdata
-        return data.decode('utf-8')
+            return False       
 
