@@ -1,3 +1,4 @@
+from base64 import decode
 import paramiko
 import os
 import binascii
@@ -42,51 +43,33 @@ class SSHConnection(Connection):
 
 
     def run(self, cmd: str) -> Tuple[str, str, str]:
+        
         u, p = self.get_root_credentails(self.connection)
         if u != "" and p != "":
             cmd = cmd.replace('\'', '"')
             cmd = f"su {u} -c '{cmd}'"
 
-        canary = binascii.b2a_hex(os.urandom(15))
-        _cmd = f"{cmd}; echo {canary.decode('utf-8')}"
-        try:
-            stdin, stdout, stderr = self.client.exec_command(cmd, get_pty=True, timeout=25)
-            if u != "" and p != "":
-                stdout.channel.recv(1024)
-                stdin.write(f"{p}\n")
-                stdin.flush()
+        bufsize = 4096
 
-            o_stdin = cmd
-            o_stdout = self.__read_until(stdout.channel, canary).strip("\r\n")
-            o_stderr = self.__read_until(stderr.channel, None).strip("\r\n")
+        try:
+            
+            self.client.get_transport().set_keepalive(5)
+            chan = self.client.get_transport().open_session()
+
+            chan.get_pty(
+                term=os.getenv('TERM', 'vt100'), 
+                width=int(os.getenv('COLUMNS', 0)), 
+                height=int(os.getenv('LINES', 0))
+                )
+
+            chan.exec_command(cmd)
+
+            stdin = cmd
+            stdout = b''.join(chan.makefile('rb', bufsize))
+            stderr = b''.join(chan.makefile_stderr('rb', bufsize))
 
         except Exception as e:
             raise e
 
-        return o_stdin, o_stdout, o_stderr
-
-
-    @staticmethod
-    def __read_all(channel: paramiko.Channel) -> bytes:
-        data = b''
-        if channel.recv_ready():
-            data = channel.recv(1024)
-            prevdata = b" "
-            while prevdata:
-                prevdata = channel.recv(1024)
-                data += prevdata
-        return data
-
-    @staticmethod
-    def __read_until(channel: paramiko.Channel, token) -> str:
-        data = b''
-        # This is stdout
-        if token:
-            while not channel.exit_status_ready() and token not in data:
-                data += SSHConnection.__read_all(channel)
-            return data.split(token)[0].decode('utf-8')
-        # This is stderr
-        while not channel.exit_status_ready():
-            data += SSHConnection.__read_all(channel)
-        return data.decode('utf-8')
+        return stdin, stdout.rstrip(b"\r\n").decode("utf-8"), stderr.rstrip(b"\r\n").decode("utf-8")
 
