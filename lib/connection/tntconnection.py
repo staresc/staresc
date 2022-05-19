@@ -43,7 +43,7 @@ class TNTConnection(Connection):
             raise e
 
         # extract from stdout the output of cmd
-        stdout = stdout.split(delimiter_canary + b'\r\n')[1]
+        stdout = stdout.split(delimiter_canary + b'\r\n')[-2]
         stdout = stdout.decode('ascii')
         return cmd, stdout, None
 
@@ -52,18 +52,13 @@ class TNTConnection(Connection):
         root_username, root_passwd = super().get_root_credentials(self.connection)
         if root_username == '' or root_passwd == '':
             return False
-        root_username = root_username.encode('ascii')
-        root_passwd = root_passwd.encode('ascii')
+        root_username = root_username
+        root_passwd = root_passwd
 
-        delimiter_canary = binascii.b2a_hex(os.urandom(15))
-        self.client.write(b'su -c "echo ' + delimiter_canary + b'" ' + root_username + b'\r\n')
-        passwd_prompt = self.client.read_until(b'Password: ', timeout=1)
-        if not b"Password: " in passwd_prompt:
-            return False
+        delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
+        stdin, stdout, stderr = self.run(f'echo {root_passwd} | su -c "echo {delimiter_canary}" {root_username}')
 
-        self.client.write(root_passwd + b'\n')
-        stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=1)
-        # check username
-        if (b'\r\n' + delimiter_canary + b'\r\n') in stdout:
+        # check canary
+        if delimiter_canary in stdout:
             return True
         return False

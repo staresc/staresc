@@ -1,6 +1,7 @@
 import paramiko
 import os
 from typing import Tuple
+import signal
 
 from .connection import Connection
 
@@ -71,13 +72,9 @@ class SSHConnection(Connection):
         if root_username == '' or root_passwd == '':
             return False
 
-        stdin, stdout, stderr = self.client.exec_command(f'su -c "whoami" {root_username}', get_pty=True, timeout=25)
-        if stdout.channel.recv(1024) != b'Password: ':
-            # Wrong username
-            return False
-        stdin.channel.send(root_passwd + '\r\n')
-        if stdout.read(1024).strip().decode("utf-8") == root_username:
-            return True
-        else:
-            return False       
+        cmd = f'echo {root_passwd} | su -c "whoami" {root_username}'
+        stdin, stdout, stderr = self.run(cmd)
 
+        if 'Password: ' in stdout and root_username in stdout:
+            return True
+        return False
