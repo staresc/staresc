@@ -49,6 +49,8 @@ def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) 
     staresc = Staresc(connection_string)
     staresc.prepare()
 
+    elevate = staresc.elevate()
+
     history = []
     for plugin in os.listdir(plugindir):
         if plugin.endswith('.yaml'):

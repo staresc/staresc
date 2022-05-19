@@ -40,22 +40,16 @@ class SSHConnection(Connection):
                 username=usr,
                 password=pwd
             )
-
+            
 
     def run(self, cmd: str) -> Tuple[str, str, str]:
-        
-        u, p = self.get_root_credentails(self.connection)
-        if u != "" and p != "":
-            cmd = cmd.replace('\'', '"')
-            cmd = f"su {u} -c '{cmd}'"
 
         bufsize = 4096
 
         try:
-            
+          
             self.client.get_transport().set_keepalive(5)
             chan = self.client.get_transport().open_session()
-
             chan.get_pty(
                 term=os.getenv('TERM', 'vt100'), 
                 width=int(os.getenv('COLUMNS', 0)), 
@@ -67,9 +61,25 @@ class SSHConnection(Connection):
             stdin = cmd
             stdout = b''.join(chan.makefile('rb', bufsize))
             stderr = b''.join(chan.makefile_stderr('rb', bufsize))
-
-        except Exception as e:
+          
+          except Exception as e:
             raise e
-
+         
         return stdin, stdout.rstrip(b"\r\n").decode("utf-8"), stderr.rstrip(b"\r\n").decode("utf-8")
+
+
+    def elevate(self) -> bool:
+        root_username, root_passwd = super().get_root_credentials(self.connection)
+        if root_username == '' or root_passwd == '':
+            return False
+
+        stdin, stdout, stderr = self.client.exec_command(f'su -c "whoami" {root_username}', get_pty=True, timeout=25)
+        if stdout.channel.recv(1024) != b'Password: ':
+            # Wrong username
+            return False
+        stdin.channel.send(root_passwd + '\r\n')
+        if stdout.read(1024).strip().decode("utf-8") == root_username:
+            return True
+        else:
+            return False       
 
