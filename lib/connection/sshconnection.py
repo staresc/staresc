@@ -1,6 +1,7 @@
 import paramiko
 import os
 from typing import Tuple
+import signal
 
 from .connection import Connection
 
@@ -71,6 +72,33 @@ class SSHConnection(Connection):
         if root_username == '' or root_passwd == '':
             return False
 
+        cmd = f'echo {root_passwd} | su -c "whoami" {root_username}'
+        bufsize = 4096
+
+        try:
+            self.client.get_transport().set_keepalive(5)
+            chan = self.client.get_transport().open_session()
+            chan.get_pty(
+                term=os.getenv('TERM', 'vt100'),
+                width=int(os.getenv('COLUMNS', 0)),
+                height=int(os.getenv('LINES', 0))
+            )
+
+            chan.exec_command(cmd)
+
+            stdout = b''.join(chan.makefile('rb', bufsize))
+            stderr = b''.join(chan.makefile_stderr('rb', bufsize))
+
+        except Exception as e:
+            raise e
+
+        if b'Password: ' in stdout and root_username in stdout.decode('utf-8'):
+            return True
+        return False
+
+
+
+        '''
         stdin, stdout, stderr = self.client.exec_command(f'su -c "whoami" {root_username}', get_pty=True, timeout=25)
         if stdout.channel.recv(1024) != b'Password: ':
             # Wrong username
@@ -80,4 +108,4 @@ class SSHConnection(Connection):
             return True
         else:
             return False       
-
+        '''
