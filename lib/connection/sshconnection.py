@@ -1,7 +1,7 @@
 import paramiko
 import os
 from typing import Tuple
-import signal
+import binascii
 
 from .connection import Connection
 
@@ -42,11 +42,9 @@ class SSHConnection(Connection):
             
 
     def run(self, cmd: str) -> Tuple[str, str, str]:
-
         bufsize = 4096
-
         try:
-          
+
             self.client.get_transport().set_keepalive(5)
             chan = self.client.get_transport().open_session()
             chan.get_pty(
@@ -72,9 +70,10 @@ class SSHConnection(Connection):
         if root_username == '' or root_passwd == '':
             return False
 
-        cmd = f'echo {root_passwd} | su -c "whoami" {root_username}'
-        stdin, stdout, stderr = self.run(cmd)
+        delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
+        stdin, stdout, stderr = self.run(f'echo {root_passwd} | su -c "echo {delimiter_canary}" {root_username}')
 
-        if 'Password: ' in stdout and root_username in stdout:
+        # check canary
+        if delimiter_canary in stdout:
             return True
         return False

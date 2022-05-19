@@ -52,8 +52,6 @@ class TNTConnection(Connection):
         root_username, root_passwd = super().get_root_credentials(self.connection)
         if root_username == '' or root_passwd == '':
             return False
-        root_username = root_username
-        root_passwd = root_passwd
 
         delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
         stdin, stdout, stderr = self.run(f'echo {root_passwd} | su -c "echo {delimiter_canary}" {root_username}')
