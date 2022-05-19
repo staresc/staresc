@@ -45,24 +45,21 @@ class TestConnection(unittest.TestCase):
         self.assertEqual(stderr2, "", "Should be empty")
 
 
-    """
-    Disabled for now, has to be enabled when telnet will be reliable
-
     def test_telnet_connection(self):
         c1 = TNTConnection(TNT_REACHABLETARGETS[0])
         c1.connect()
         stdin1, stdout1, stderr1  = c1.run("echo test")
         self.assertEqual(stdin1, "echo test", "Should be 'echo test'")
         self.assertEqual(stdout1, "test", "Should echo 'test'")
-        self.assertEqual(stderr1, "", "Should be empty")
+        self.assertEqual(stderr1, None, "Should be empty")
 
         c2 = TNTConnection(TNT_REACHABLETARGETS[1])
         c2.connect()
         stdin2, stdout2, stderr2  = c2.run("echo test")
         self.assertEqual(stdin2, "echo test", "Should be 'echo test'")
         self.assertEqual(stdout2, "test", "Should echo 'test'")
-        self.assertEqual(stderr2, "", "Should be empty")
-    """
+        self.assertEqual(stderr2, None, "Should be empty")
+    
 
     def test_unreachable(self):
         try:
@@ -96,19 +93,31 @@ class TestStaresc(unittest.TestCase):
         # Assert result is not empty
         self.assertTrue(out != None)
 
-        # We expect this output:
-        expected_str = """{"plugin": "CVE-2021-3156.yaml", "results": [{"stdin": "sudoedit -s '0123456789\\\\'", "stdout": "munmap_chunk(): invalid pointer", "stderr": ""}, {"stdin": "/usr/local/bin/sudo --version", "stdout": "Sudo version 1.8.31p2\\r\\nSudoers policy plugin version 1.8.31p2\\r\\nSudoers file grammar version 46\\r\\nSudoers I/O plugin version 1.8.31p2", "stderr": ""}], "parse_results": [[false, {"stdout": "munmap_chunk(): invalid pointer", "stderr": ""}], [true, {"stdout": "1.8.3", "stderr": ""}]], "parsed": true}"""
-        expected = json.loads(expected_str)
-
         # Adjust for tuples -> list
         sub = []
         for i in out['parse_results']:
             sub.append(list(i))
         out['parse_results'] = sub
 
-        self.assertEqual(expected, out, f"Output should be equals to expected \n\n{out}\n\n{expected}" )
+        self.assertTrue(
+            "plugin" in out.keys() and "parse_results" in out.keys(),
+            f"Key(s) not found in staresc's output:\n\n{out}\n\n"
+        )
+        self.assertTrue(
+            len(out["parse_results"]) == 2 and len(out["parse_results"][0]) == 2, 
+            f"Incorrect output in parse_results:\n\n{out['parse_results']}\n\n"
+        )
+        self.assertTrue(
+            isinstance(out["parse_results"][0][0], bool) and isinstance(out["parse_results"][1][0], bool), 
+            f"Arrays of results should have a boolean in index 0:\n\n{out['parse_results'][0]}\n{out['parse_results'][1]}\n\n"
+        )
 
-    
+        self.assertEqual(out["plugin"], "CVE-2021-3156.yaml", "Wrong plugin field")
+        sudoedit_vulnerable = out["parse_results"][0][0]
+        sudo_vulnerable_version = out["parse_results"][1][0]
+        self.assertTrue(sudoedit_vulnerable and sudo_vulnerable_version, "Parse result should report the presence of the vulnerability")
+        
+
     def test_lxc_plugin_execution_on_vulnerable(self):
         # Prepare object
         se = Staresc(SSH_REACHABLETARGETS[0])
