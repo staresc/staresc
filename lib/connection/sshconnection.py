@@ -1,7 +1,5 @@
-from base64 import decode
 import paramiko
 import os
-import binascii
 from typing import Tuple
 
 from .connection import Connection
@@ -62,7 +60,7 @@ class SSHConnection(Connection):
             stdout = b''.join(chan.makefile('rb', bufsize))
             stderr = b''.join(chan.makefile_stderr('rb', bufsize))
           
-          except Exception as e:
+        except Exception as e:
             raise e
          
         return stdin, stdout.rstrip(b"\r\n").decode("utf-8"), stderr.rstrip(b"\r\n").decode("utf-8")
