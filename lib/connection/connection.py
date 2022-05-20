@@ -9,6 +9,9 @@ class Connection():
     # schema://user:(passwd|\\path\\pubkey)@host:port/elevate_user:elevate_passwd
     connection: str = ""
 
+    # static fields
+    COMMAND_TIMEOUT: float = 60
+
     def __init__(self, connection: str) -> None:
         self.connection = connection
 

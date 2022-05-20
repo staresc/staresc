@@ -44,6 +44,8 @@ class Staresc():
             self.connection.connect()
             self.__populate_binpath()
             self.__get_os_info()
+        except CommandTimeoutError as e:
+            raise Exception("timeout during connection initialization")
         except Exception as e:
             raise e 
 
@@ -151,28 +153,35 @@ class Staresc():
             cmd = test.get_command()
             # Try to use absolute paths for the command
             cmd = self.__which(cmd.split(' ')[0]) + ' ' + ' '.join(cmd.split(' ')[1:])
-            stdin, stdout, stderr = self.connection.run(cmd)
-            ret_val['results'].append(                      #results to parse
-                {
-                    'stdin'  : stdin,
-                    'stdout' : stdout,
-                    'stderr' : stderr
-                }
-            )
+            try:
+                stdin, stdout, stderr = self.connection.run(cmd)
 
-        if not to_parse:
-            ret_val['parsed'] = False
-            ret_val['parse_results'] = ''
-        else:
-            ret_val['parse_results'] = []
-            for idx, test_result in enumerate(ret_val['results']):
-                ret_val['parse_results'].append(plugin.get_tests()[idx].parse({
-                    "stdout": test_result["stdout"],
-                    "stderr": test_result["stderr"]
-                }))          # parse tests results
-            ret_val['parsed'] = True
+                ret_val['results'].append(                      #results to parse
+                    {
+                        'stdin'  : stdin,
+                        'stdout' : stdout,
+                        'stderr' : stderr
+                    }
+                )
 
-        del plugin                                                                  #delete plugin obj
+                if not to_parse:
+                    ret_val['parsed'] = False
+                    ret_val['parse_results'] = ''
+                else:
+                    ret_val['parse_results'] = []
+                    for idx, test_result in enumerate(ret_val['results']):
+                        ret_val['parse_results'].append(plugin.get_tests()[idx].parse({
+                            "stdout": test_result["stdout"],
+                            "stderr": test_result["stderr"]
+                        }))          # parse tests results
+                    ret_val['parsed'] = True
+            except CommandTimeoutError as e:
+                ret_val['results'].append( { 'stdin'  : cmd, 'stdout' : '', 'stderr' : '' } )
+                ret_val['parsed'] = True
+                ret_val['parse_results'].append((False, {"stdout" : "", "stderr" : "", "timeout" : True}))
+
+        # delete plugin obj
+        del plugin
         return ret_val
 
 

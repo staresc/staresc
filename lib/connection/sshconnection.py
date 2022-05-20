@@ -6,17 +6,15 @@ from typing import Tuple
 import binascii
 
 from .connection import Connection
-from ..commandtimeouterror import CommandTimeoutError
+from lib.exception import CommandTimeoutError
 
 class SSHConnection(Connection):
 
     client: paramiko.SSHClient
-    timeout: float
 
-    def __init__(self, connection: str, timeout: float = 2) -> None:
+    def __init__(self, connection: str) -> None:
         super().__init__(connection)
         self.client = paramiko.SSHClient()
-        self.timeout = timeout
 
     @staticmethod
     def match_scheme(s: str) -> bool:
@@ -35,7 +33,6 @@ class SSHConnection(Connection):
                 port=port,
                 username=usr,
                 pkey=paramiko.RSAKey.from_private_key_file(pwd),
-                timeout=self.timeout
             )
         else:
             self.client.connect(
@@ -43,11 +40,12 @@ class SSHConnection(Connection):
                 port=port,
                 username=usr,
                 password=pwd,
-                timeout=self.timeout
             )
             
 
-    def run(self, cmd: str) -> Tuple[str, str, str]:
+    def run(self, cmd: str, timeout: float = None) -> Tuple[str, str, str]:
+        if not timeout:
+            timeout = Connection.COMMAND_TIMEOUT
         bufsize = 4096
         try:
 
@@ -58,8 +56,7 @@ class SSHConnection(Connection):
                 width=int(os.getenv('COLUMNS', 0)), 
                 height=int(os.getenv('LINES', 0))
                 )
-            cmd = 'sleep 3; echo a'
-            chan.settimeout(self.timeout)
+            chan.settimeout(timeout)
             chan.exec_command(cmd)
 
             stdin = cmd

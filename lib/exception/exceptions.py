@@ -24,3 +24,16 @@ class SchemeError(Exception):
         message=f"Unsupported schema: {scheme}"
         super().__init__(message=message)
 
+
+class CommandTimeoutError(Exception):
+    """Exception raised when a command requires too much execution time
+
+    Attributes:
+        command -- command that triggers timeout
+    """
+
+    command: str
+    def __init__(self, command: str = ''):
+        self.command = command
+        super().__init__(f'Command "{self.command}" requires too much execution time')
+
