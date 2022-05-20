@@ -44,7 +44,7 @@ class TNTConnection(Connection):
 
         # extract from stdout the output of cmd
         stdout = stdout.split(delimiter_canary + b'\r\n')[-2]
-        stdout = stdout.decode('ascii').rstrip()
+        stdout = stdout.rstrip(b'\r\n').decode('ascii')
         return cmd, stdout, None
 
 
