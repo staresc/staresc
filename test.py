@@ -130,17 +130,28 @@ class TestStaresc(unittest.TestCase):
         # Assert result is not empty
         self.assertTrue(out != None)
 
-        # We expect this output:
-        expected_str = """{"plugin":"lxc.yaml","results":[{"stdin":"command -v lxc-attach lxc-checkpoint lxc-create lxc-freeze lxc-snapshot lxc-unfreeze lxc-wait lxc-autostart lxc-config lxc-destroy lxc-info lxc-start lxc-unshare lxc-cgroup lxc-console lxc-device lxc-ls lxc-stop lxc-update-config lxc-checkconfig lxc-copy lxc-execute lxc-monitor lxc-top lxc-usernsexec","stdout": "/usr/bin/lxc-attach\\r\\n/usr/bin/lxc-checkpoint\\r\\n/usr/bin/lxc-create\\r\\n/usr/bin/lxc-freeze\\r\\n/usr/bin/lxc-snapshot\\r\\n/usr/bin/lxc-unfreeze\\r\\n/usr/bin/lxc-wait\\r\\n/usr/bin/lxc-autostart\\r\\n/usr/bin/lxc-config\\r\\n/usr/bin/lxc-destroy\\r\\n/usr/bin/lxc-info\\r\\n/usr/bin/lxc-start\\r\\n/usr/bin/lxc-unshare\\r\\n/usr/bin/lxc-cgroup\\r\\n/usr/bin/lxc-console\\r\\n/usr/bin/lxc-device\\r\\n/usr/bin/lxc-ls\\r\\n/usr/bin/lxc-stop\\r\\n/usr/bin/lxc-update-config\\r\\n/usr/bin/lxc-checkconfig\\r\\n/usr/bin/lxc-copy\\r\\n/usr/bin/lxc-execute\\r\\n/usr/bin/lxc-monitor\\r\\n/usr/bin/lxc-top\\r\\n/usr/bin/lxc-usernsexec","stderr": ""}],"parse_results": [[true,{"stdout": "/usr/bin/lxc-attach\\r\\n/usr/bin/lxc-checkpoint\\r\\n/usr/bin/lxc-create\\r\\n/usr/bin/lxc-freeze\\r\\n/usr/bin/lxc-snapshot\\r\\n/usr/bin/lxc-unfreeze\\r\\n/usr/bin/lxc-wait\\r\\n/usr/bin/lxc-autostart\\r\\n/usr/bin/lxc-config\\r\\n/usr/bin/lxc-destroy\\r\\n/usr/bin/lxc-info\\r\\n/usr/bin/lxc-start\\r\\n/usr/bin/lxc-unshare\\r\\n/usr/bin/lxc-cgroup\\r\\n/usr/bin/lxc-console\\r\\n/usr/bin/lxc-device\\r\\n/usr/bin/lxc-ls\\r\\n/usr/bin/lxc-stop\\r\\n/usr/bin/lxc-update-config\\r\\n/usr/bin/lxc-checkconfig\\r\\n/usr/bin/lxc-copy\\r\\n/usr/bin/lxc-execute\\r\\n/usr/bin/lxc-monitor\\r\\n/usr/bin/lxc-top\\r\\n/usr/bin/lxc-usernsexec","stderr": ""}]],"parsed": true}"""
-        expected = json.loads(expected_str)
-
         # Adjust for tuples -> list
         sub = []
         for i in out['parse_results']:
             sub.append(list(i))
         out['parse_results'] = sub
 
-        self.assertEqual(expected, out, f"Output should be equals to expected \n\n{out}\n\n{expected}" )
+        self.assertTrue(
+            "plugin" in out.keys() and "parse_results" in out.keys(),
+            f"Key(s) not found in staresc's output:\n\n{out}\n\n"
+        )
+        self.assertTrue(
+            len(out["parse_results"]) == 1 and len(out["parse_results"][0]) == 2, 
+            f"Incorrect output in parse_results:\n\n{out['parse_results']}\n\n"
+        )
+        self.assertTrue(
+            isinstance(out["parse_results"][0][0], bool), 
+            f"Arrays of results should have a boolean in index 0:\n\n{out['parse_results'][0]}\n\n"
+        )
+
+        self.assertEqual(out["plugin"], "lxc.yaml", "Wrong plugin field")
+        vulnerable = out["parse_results"][0][0]
+        self.assertTrue(vulnerable, "Parse result should report the presence of the vulnerability")
 
     
     def test_CVE20213156_plugin_execution_on_patched(self):
@@ -155,18 +166,30 @@ class TestStaresc(unittest.TestCase):
         # Assert result is not empty
         self.assertTrue(out != None)
 
-        # We expect this output:
-        expected_str = """{"plugin": "CVE-2021-3156.yaml","results": [{"stdin": "sudoedit -s '0123456789\\\\'","stdout": "bash: sudoedit: command not found","stderr": ""},{"stdin": "sudo --version","stdout": "bash: sudo: command not found","stderr": ""}],"parse_results": [[false,{"stdout": "bash: sudoedit: command not found","stderr": ""}],[false,{"stdout": "","stderr": ""}]],"parsed": true}"""
-        expected = json.loads(expected_str)
-
         # Adjust for tuples -> list
         sub = []
         for i in out['parse_results']:
             sub.append(list(i))
         out['parse_results'] = sub
 
-        self.assertEqual(expected, out, f"Output should be equals to expected \n\n{out}\n\n{expected}" )
+        self.assertTrue(
+            "plugin" in out.keys() and "parse_results" in out.keys(),
+            f"Key(s) not found in staresc's output:\n\n{out}\n\n"
+        )
+        self.assertTrue(
+            len(out["parse_results"]) == 2 and len(out["parse_results"][0]) == 2, 
+            f"Incorrect output in parse_results:\n\n{out['parse_results']}\n\n"
+        )
+        self.assertTrue(
+            isinstance(out["parse_results"][0][0], bool) and isinstance(out["parse_results"][1][0], bool), 
+            f"Arrays of results should have a boolean in index 0:\n\n{out['parse_results'][0]}\n{out['parse_results'][1]}\n\n"
+        )
 
+        self.assertEqual(out["plugin"], "CVE-2021-3156.yaml", "Wrong plugin field")
+        sudoedit_vulnerable = out["parse_results"][0][0]
+        sudo_vulnerable_version = out["parse_results"][1][0]
+        self.assertTrue(not sudoedit_vulnerable and not sudo_vulnerable_version, "Parse result should report the absence of the vulnerability")
+        
 
     def test_lxc_plugin_execution_on_patched(self):
         # Prepare object
@@ -180,18 +203,28 @@ class TestStaresc(unittest.TestCase):
         # Assert result is not empty
         self.assertTrue(out != None)
 
-        # We expect this output:
-        expected_str = """{"plugin": "lxc.yaml","results": [{"stdin": "command -v lxc-attach lxc-checkpoint lxc-create lxc-freeze lxc-snapshot lxc-unfreeze lxc-wait lxc-autostart lxc-config lxc-destroy lxc-info lxc-start lxc-unshare lxc-cgroup lxc-console lxc-device lxc-ls lxc-stop lxc-update-config lxc-checkconfig lxc-copy lxc-execute lxc-monitor lxc-top lxc-usernsexec","stdout": "","stderr": ""}],"parse_results": [[false,{"stdout": "","stderr": ""}]],"parsed": true}"""
-        expected = json.loads(expected_str)
-
         # Adjust for tuples -> list
         sub = []
         for i in out['parse_results']:
             sub.append(list(i))
         out['parse_results'] = sub
 
-        self.assertEqual(expected, out, f"Output should be equals to expected \n\n{out}\n\n{expected}" )
+        self.assertTrue(
+            "plugin" in out.keys() and "parse_results" in out.keys(),
+            f"Key(s) not found in staresc's output:\n\n{out}\n\n"
+        )
+        self.assertTrue(
+            len(out["parse_results"]) == 1 and len(out["parse_results"][0]) == 2, 
+            f"Incorrect output in parse_results:\n\n{out['parse_results']}\n\n"
+        )
+        self.assertTrue(
+            isinstance(out["parse_results"][0][0], bool), 
+            f"Arrays of results should have a boolean in index 0:\n\n{out['parse_results'][0]}\n\n"
+        )
 
+        self.assertEqual(out["plugin"], "lxc.yaml", "Wrong plugin field")
+        vulnerable = out["parse_results"][0][0]
+        self.assertTrue(not vulnerable, "Parse result should report the presence of the vulnerability")
 
 
 if __name__ == "__main__":
