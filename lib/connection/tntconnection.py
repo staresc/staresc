@@ -1,12 +1,14 @@
 import telnetlib
 from typing import Tuple
 import os,binascii
-import time
 from .connection import Connection
+from lib.exception import CommandTimeoutError
 
 
 class TNTConnection(Connection):
-    
+
+    client: telnetlib.Telnet
+
     def __init__(self, connection: str) -> None:
         super().__init__(connection)
 
@@ -31,16 +33,22 @@ class TNTConnection(Connection):
         self.client.write(b'echo ' + delimiter_canary + b'\n')
 
         # consume output on channel
-        output2 = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=1)
+        self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=1)
 
 
-    def run(self, cmd: str) -> Tuple[str, str, str]:
+    def run(self, cmd: str, timeout: float = None) -> Tuple[str, str, str]:
+        if not timeout:
+            timeout = Connection.COMMAND_TIMEOUT
         try:
             delimiter_canary = binascii.b2a_hex(os.urandom(15))
             self.client.write(cmd.encode('ascii') + b"; echo " + delimiter_canary + b'\n')
-            stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n')
+            stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=timeout)
         except Exception as e:
             raise e
+
+        if not (b'\r\n' + delimiter_canary + b'\r\n') in stdout:
+            # read_until() returned due to timeout
+            raise CommandTimeoutError(command = cmd)
 
         # extract from stdout the output of cmd
         stdout = stdout.split(delimiter_canary + b'\r\n')[-2]

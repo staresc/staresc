@@ -1,10 +1,12 @@
+import socket
+
 import paramiko
 import os
 from typing import Tuple
 import binascii
 
 from .connection import Connection
-
+from lib.exception import CommandTimeoutError
 
 class SSHConnection(Connection):
 
@@ -30,18 +32,20 @@ class SSHConnection(Connection):
                 hostname=host,
                 port=port,
                 username=usr,
-                pkey=paramiko.RSAKey.from_private_key_file(pwd)
+                pkey=paramiko.RSAKey.from_private_key_file(pwd),
             )
         else:
             self.client.connect(
                 hostname=host,
                 port=port,
                 username=usr,
-                password=pwd
+                password=pwd,
             )
             
 
-    def run(self, cmd: str) -> Tuple[str, str, str]:
+    def run(self, cmd: str, timeout: float = None) -> Tuple[str, str, str]:
+        if not timeout:
+            timeout = Connection.COMMAND_TIMEOUT
         bufsize = 4096
         try:
 
@@ -52,13 +56,15 @@ class SSHConnection(Connection):
                 width=int(os.getenv('COLUMNS', 0)), 
                 height=int(os.getenv('LINES', 0))
                 )
-
+            chan.settimeout(timeout)
             chan.exec_command(cmd)
 
             stdin = cmd
             stdout = b''.join(chan.makefile('rb', bufsize))
             stderr = b''.join(chan.makefile_stderr('rb', bufsize))
-          
+
+        except socket.timeout as e:
+            raise CommandTimeoutError(command = cmd)
         except Exception as e:
             raise e
          

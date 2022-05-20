@@ -35,6 +35,7 @@ def cliparse() -> argparse.Namespace:
     parser.add_argument( '-P', '--pubkey', action='store_true', default=False, help='specify if a pubkey is provided' )
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
     parser.add_argument( '-r', '--results', action='store', metavar='R', default='', help='results to be parsed (if already existing)' )
+    parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target, default: {Connection.COMMAND_TIMEOUT}s')
     targets = parser.add_mutually_exclusive_group(required=True)
     targets.add_argument( '-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
@@ -127,6 +128,8 @@ if __name__ == '__main__':
         write(results, outfile)
         logger.info(f"Wrote parsed file to {outfile}")
         exit(0)
+    if args.timeout:
+        Connection.COMMAND_TIMEOUT = args.timeout
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
