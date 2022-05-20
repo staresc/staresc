@@ -1,17 +1,19 @@
+import socket
+
 import paramiko
 import os
 from typing import Tuple
 import binascii
 
 from .connection import Connection
-
+from ..commandtimeouterror import CommandTimeoutError
 
 class SSHConnection(Connection):
 
     client: paramiko.SSHClient
     timeout: float
 
-    def __init__(self, connection: str, timeout: float = 300) -> None:
+    def __init__(self, connection: str, timeout: float = 2) -> None:
         super().__init__(connection)
         self.client = paramiko.SSHClient()
         self.timeout = timeout
@@ -56,6 +58,7 @@ class SSHConnection(Connection):
                 width=int(os.getenv('COLUMNS', 0)), 
                 height=int(os.getenv('LINES', 0))
                 )
+            cmd = 'sleep 3; echo a'
             chan.settimeout(self.timeout)
             chan.exec_command(cmd)
 
@@ -63,6 +66,8 @@ class SSHConnection(Connection):
             stdout = b''.join(chan.makefile('rb', bufsize))
             stderr = b''.join(chan.makefile_stderr('rb', bufsize))
 
+        except socket.timeout as e:
+            raise CommandTimeoutError(command = cmd)
         except Exception as e:
             raise e
          
