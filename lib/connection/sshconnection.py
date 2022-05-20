@@ -9,10 +9,12 @@ from .connection import Connection
 class SSHConnection(Connection):
 
     client: paramiko.SSHClient
+    timeout: float
 
-    def __init__(self, connection: str) -> None:
+    def __init__(self, connection: str, timeout: float = 300) -> None:
         super().__init__(connection)
         self.client = paramiko.SSHClient()
+        self.timeout = timeout
 
     @staticmethod
     def match_scheme(s: str) -> bool:
@@ -30,14 +32,16 @@ class SSHConnection(Connection):
                 hostname=host,
                 port=port,
                 username=usr,
-                pkey=paramiko.RSAKey.from_private_key_file(pwd)
+                pkey=paramiko.RSAKey.from_private_key_file(pwd),
+                timeout=self.timeout
             )
         else:
             self.client.connect(
                 hostname=host,
                 port=port,
                 username=usr,
-                password=pwd
+                password=pwd,
+                timeout=self.timeout
             )
             
 
@@ -52,13 +56,13 @@ class SSHConnection(Connection):
                 width=int(os.getenv('COLUMNS', 0)), 
                 height=int(os.getenv('LINES', 0))
                 )
-
+            chan.settimeout(self.timeout)
             chan.exec_command(cmd)
 
             stdin = cmd
             stdout = b''.join(chan.makefile('rb', bufsize))
             stderr = b''.join(chan.makefile_stderr('rb', bufsize))
-          
+
         except Exception as e:
             raise e
          
