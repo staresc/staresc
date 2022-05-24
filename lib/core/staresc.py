@@ -171,8 +171,8 @@ class Staresc():
                     ret_val['parse_results'] = []
                     for idx, test_result in enumerate(ret_val['results']):
                         ret_val['parse_results'].append(plugin.get_tests()[idx].parse({
-                            "stdout": test_result["stdout"],
-                            "stderr": test_result["stderr"]
+                            "stdout": test_result["stdout"] or '',
+                            "stderr": test_result["stderr"] or ''
                         }))          # parse tests results
                     ret_val['parsed'] = True
             except CommandTimeoutError as e:
