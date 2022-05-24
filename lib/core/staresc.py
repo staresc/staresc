@@ -148,7 +148,9 @@ class Staresc():
         ret_val['plugin'] = os.path.basename(pluginfile)        # assign plugin name/id
 
         # Run all commands and save the results
-        ret_val['results'] = []
+        ret_val['results'] = []             # results of the commands
+        ret_val['parse_results'] = []       # results parsed by the parsers
+        idx = 0                             # index of the text being ran
         for test in plugin.get_tests():
             cmd = test.get_command()
             # Try to use absolute paths for the command
@@ -156,29 +158,28 @@ class Staresc():
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
 
-                ret_val['results'].append(                      #results to parse
-                    {
-                        'stdin'  : stdin,
-                        'stdout' : stdout,
-                        'stderr' : stderr
-                    }
-                )
+
+                test_result =  {                #results to parse
+                    'stdin'  : stdin,
+                    'stdout' : stdout,
+                    'stderr' : stderr
+                }
+                ret_val['results'].append(test_result)
 
                 if not to_parse:
                     ret_val['parsed'] = False
-                    ret_val['parse_results'] = ''
+                    ret_val['parse_results'].append('')
                 else:
-                    ret_val['parse_results'] = []
-                    for idx, test_result in enumerate(ret_val['results']):
-                        ret_val['parse_results'].append(plugin.get_tests()[idx].parse({
-                            "stdout": test_result["stdout"] or '',
-                            "stderr": test_result["stderr"] or ''
-                        }))          # parse tests results
+                    ret_val['parse_results'].append(plugin.get_tests()[idx].parse({
+                        "stdout": test_result["stdout"] or '',
+                        "stderr": test_result["stderr"] or ''
+                    }))          # parse test results
                     ret_val['parsed'] = True
             except CommandTimeoutError as e:
                 ret_val['results'].append( { 'stdin'  : cmd, 'stdout' : '', 'stderr' : '' } )
                 ret_val['parsed'] = True
                 ret_val['parse_results'].append((False, {"stdout" : "", "stderr" : "", "timeout" : True}))
+            idx += 1
 
         # delete plugin obj
         del plugin
