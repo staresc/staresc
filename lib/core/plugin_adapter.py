@@ -25,8 +25,7 @@ name: 'sudoedit -s'
 description: 'Check if sudo is vulnerable to sudoedit -s heap-based buffer overflow'
 cve: 'CVE-2021-3156'
 reference: 'https://nvd.nist.gov/vuln/detail/CVE-2021-3156'
-cvssv3: 7.8
-cvssv2: 0
+cvss: 7.8
 severity: 'high'
 tests:                                                              # list of the test (commands to check) to perform
   - command: 'sudoedit -s "1234567890123456789012\\"'               # command to test
@@ -283,8 +282,7 @@ class Plugin:
     description: str
     cve: str
     reference: str
-    cvssv3: float
-    cvssv2: float
+    cvss: float
     severity: str
     remediation: str
     # TODO tags?
@@ -311,7 +309,7 @@ class Plugin:
         self.__intialize_opt_info(plugin_content)
 
     def __intialize_opt_info(self, plugin_content: dict):
-        for info in ["name", "cve", "cvssv3", "cvssv2", "author", "description", "severity", "reference", "remediation"]:
+        for info in ["name", "cve", "cvss", "author", "description", "severity", "reference", "remediation"]:
             if info in plugin_content:
                 setattr(self, info, plugin_content[info])
 
