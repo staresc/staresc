@@ -66,6 +66,7 @@ class Parser:
     ALLOWED_PARTS = [ "stdout", "stderr" ]
     ALLOWED_RULES = [ "regex", "word" ]
     ALLOWED_CONDS = [ "and", "or" ]
+    ALLOWED_INV_MATCH = [True, False]
 
     # rule_type can be "regex" or "word" for matching the command outputs
     rule_type: str
@@ -75,6 +76,8 @@ class Parser:
     parts: list[str]
     # and/or conditions
     condition: str
+    # True: invert the result of matcher, False: don't invert
+    invert_match: bool
     
     @staticmethod
     def __get_part(d: dict) -> list[str]:
@@ -116,6 +119,15 @@ class Parser:
         else:
             raise Exception("No rule specified")
 
+    @staticmethod
+    def __get_invert_match(d: dict) -> bool:
+        if "invert_match" in d:
+            if d["invert_match"] in Parser.ALLOWED_INV_MATCH:
+                return d["invert_match"]
+            else:
+                raise Exception(f'Invalid invert_match {d["invert_match"]}')
+        else:
+            return False
 
     def __init__(self, parser_content: dict):
 
@@ -125,6 +137,7 @@ class Parser:
             self.rule_type = self.__get_rule_type(parser_content)
             self.condition = self.__get_condition(parser_content)
             self.rules     = self.__get_rules(parser_content)
+            self.invert_match = self.__get_invert_match(parser_content)
         
         except Exception as e:
             raise e
@@ -181,7 +194,9 @@ class Matcher(Parser):
         # TODO static centralized way to save possible values for parts
         # VALE: didn't understand, but "all" logic implemented in parent class
         # parts_to_check = self.parts
-        return MATCHER_TO_FUNC[self.rule_type](self.parts, result)
+        is_matched, tmp_res = MATCHER_TO_FUNC[self.rule_type](self.parts, result)
+        is_matched ^= self.invert_match         # is_matched = invert_match ? !is_matched : is_matched
+        return (is_matched, tmp_res)
 
 
 # class that represents an extractor, it is a parser that implements the method extract
