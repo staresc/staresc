@@ -7,7 +7,7 @@ from typing import Any
 
 from lib.connection import *
 from lib.exception import *
-from .plugin_adapter import *
+from .plugins import *
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
