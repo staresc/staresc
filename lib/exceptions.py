@@ -37,3 +37,14 @@ class CommandTimeoutError(Exception):
         self.command = command
         super().__init__(f'Command "{self.command}" requires too much execution time')
 
+
+class AuthenticationError(Exception):
+    """Exception raised when the authentication fails
+
+    Attributes:
+        username -- username used for authentication
+        password -- password used for authentication
+    """
+
+    def __init__(self, user: str = '', passwd: str = ''):
+        super().__init__(f'Authentication failed with creds: {user}:{passwd}')

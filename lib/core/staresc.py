@@ -6,8 +6,8 @@ from functools import lru_cache
 from typing import Any
 
 from lib.connection import *
-from lib.exception import *
-from .plugins import *
+from lib.exceptions import *
+from lib.core.plugins import *
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -44,10 +44,8 @@ class Staresc():
             self.connection.connect()
             self.__populate_binpath()
             self.__get_os_info()
-        except CommandTimeoutError as e:
-            raise Exception("timeout during connection initialization")
         except Exception as e:
-            raise e 
+            raise e
 
 
     def __populate_binpath(self) -> bool:

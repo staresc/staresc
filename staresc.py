@@ -19,6 +19,7 @@ import traceback
 
 from lib.connection import Connection
 from lib.core import Staresc
+from lib.exceptions import *
 
 
 # Configure logger
@@ -48,7 +49,12 @@ def cliparse() -> argparse.Namespace:
 
 def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) -> dict:
     staresc = Staresc(connection_string)
-    staresc.prepare()
+    
+    try:
+        staresc.prepare()
+    except (CommandTimeoutError, AuthenticationError, Exception) as e:
+        logger.error(f"Initialization of {connection_string} raised Exception {type(e)} => {e}")
+        return {}
 
     elevate = staresc.elevate()
 
@@ -60,7 +66,10 @@ def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) 
 
             pluginfile = os.path.join(plugindir, plugin)
             logger.debug(f"Scanning {connection_string} with plugin {pluginfile} (Will be parsed: {to_parse})")
-            to_happend = staresc.do_check(pluginfile, to_parse)
+            try:
+                to_happend = staresc.do_check(pluginfile, to_parse)
+            except Exception:
+                logger.error(e)
             if to_happend != None:
                 history.append(to_happend)
 
