@@ -3,11 +3,11 @@
 import unittest
 import paramiko
 import os
-import json
 
 from lib.connection.sshconnection import SSHConnection
 from lib.connection.tntconnection import TNTConnection
 from lib.core.staresc import Staresc
+from lib.exceptions import AuthenticationError
 
 PLUGINDIR = "./test/plugins/"
 
@@ -17,13 +17,18 @@ SSH_REACHABLETARGETS = [
 ]
 
 TNT_REACHABLETARGETS = [
-    "tnt://user:pass@127.0.0.1:10023/",
-    "tnt://user:pass@127.0.0.1:10025/",
+    "telnet://user:pass@127.0.0.1:10023/",
+    "telnet://user:pass@127.0.0.1:10025/",
 ]
 
 UNREACHABLE_TARGETS = [ 
     "ssh://u:p@127.0.0.1:10032/",
-    "tnt://u:p@127.0.0.1:10032/",
+    "telnet://u:p@127.0.0.1:10032/",
+]
+
+WRONG_CREDENTIALS_LIST = [
+    "ssh://user:pass@127.0.0.1:10022/",
+    "telnet://user:pass@127.0.0.1:10023/",
 ]
 
 
@@ -226,6 +231,22 @@ class TestStaresc(unittest.TestCase):
         vulnerable = out["parse_results"][0][0]
         self.assertTrue(not vulnerable, "Parse result should report the presence of the vulnerability")
 
+
+class TestCredentials(unittest.TestCase):
+
+    def test_wrong_credentials(self):
+        c1 = SSHConnection(WRONG_CREDENTIALS_LIST[0]) 
+        try:
+            c1.connect()
+        except Exception as e:
+            self.assertRaises(AuthenticationError,e)
+
+        c2 = TNTConnection(WRONG_CREDENTIALS_LIST[1])
+        try:
+            c2.connect()
+        except Exception as e:
+            self.assertRaises(AuthenticationError,e)
+        
 
 if __name__ == "__main__":
     unittest.main()
