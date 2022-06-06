@@ -1,20 +1,26 @@
 import socket
-
 import paramiko
 import os
 from typing import Tuple
 import binascii
 
-from .connection import Connection
-from lib.exception import CommandTimeoutError
+from lib.exceptions import AuthenticationError, CommandTimeoutError
+from lib.connection import Connection
 
 class SSHConnection(Connection):
 
     client: paramiko.SSHClient
 
+    # CompletelyIgnore is a custom policy to ignore missing keys in
+    # paramiko. It will do nothing if keys aren't found
+    class CompletelyIgnore(paramiko.MissingHostKeyPolicy):
+        def missing_host_key(self, client, hostname, key):
+            pass
+
     def __init__(self, connection: str) -> None:
         super().__init__(connection)
         self.client = paramiko.SSHClient()
+        self.client.set_missing_host_key_policy(self.CompletelyIgnore)
 
     @staticmethod
     def match_scheme(s: str) -> bool:
@@ -22,25 +28,19 @@ class SSHConnection(Connection):
 
 
     def connect(self):
-        host = self.get_hostname(self.connection)
-        port = self.get_port(self.connection)
+
+        h = self.get_hostname(self.connection)
+        p = self.get_port(self.connection)
         usr, pwd = self.get_credentials(self.connection)
 
-        self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        if "/" in pwd:
-            self.client.connect(
-                hostname=host,
-                port=port,
-                username=usr,
-                pkey=paramiko.RSAKey.from_private_key_file(pwd),
-            )
-        else:
-            self.client.connect(
-                hostname=host,
-                port=port,
-                username=usr,
-                password=pwd,
-            )
+        # We need to generalize the exception for every connection type
+        try:
+            if "/" in pwd:
+                self.client.connect(hostname=h, port=p, username=usr, pkey=paramiko.RSAKey.from_private_key_file(pwd))
+            else:
+                self.client.connect(hostname=h, port=p, username=usr, password=pwd)
+        except paramiko.AuthenticationException:
+            raise AuthenticationError(usr, pwd)
             
 
     def run(self, cmd: str, timeout: float = None) -> Tuple[str, str, str]:

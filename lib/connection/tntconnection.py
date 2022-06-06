@@ -1,8 +1,9 @@
 import telnetlib
 from typing import Tuple
 import os,binascii
-from .connection import Connection
-from lib.exception import CommandTimeoutError
+
+from lib.exceptions import AuthenticationError, CommandTimeoutError
+from lib.connection import Connection
 
 
 class TNTConnection(Connection):
@@ -23,17 +24,18 @@ class TNTConnection(Connection):
         port = self.get_port(self.connection)
         usr, pwd = self.get_credentials(self.connection)
 
-        self.client = telnetlib.Telnet(host, port)
-        self.client.read_until(b"login:")
-        self.client.write(usr.encode('ascii') + b"\n")
-        self.client.read_until(b"Password: ")
-        self.client.write(pwd.encode('ascii') + b"\n")
+        try:
+            self.client = telnetlib.Telnet(host, port, timeout=self.COMMAND_TIMEOUT)
+            self.client.read_until(b"login:")
+            self.client.write(usr.encode('ascii') + b"\n")
+            self.client.read_until(b"Password: ")
+            self.client.write(pwd.encode('ascii') + b"\n")
 
-        delimiter_canary = binascii.b2a_hex(os.urandom(15))
-        self.client.write(b'echo ' + delimiter_canary + b'\n')
-
-        # consume output on channel
-        self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=1)
+            delimiter_canary = binascii.b2a_hex(os.urandom(15))
+            self.client.write(b'echo ' + delimiter_canary + b'\n')
+            self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n')
+        except Exception:
+            raise AuthenticationError(usr,pwd)
 
 
     def run(self, cmd: str, timeout: float = None) -> Tuple[str, str, str]:
