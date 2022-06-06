@@ -9,4 +9,4 @@ aur
 venv
 .idea
 test_targets.txt
-/cekout_test/test_yaml_plugin/active/
+.vscode
