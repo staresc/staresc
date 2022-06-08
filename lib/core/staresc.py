@@ -14,7 +14,7 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-SUPPORTED_SCHEMAS = [ 'ssh', 'tnt']
+SUPPORTED_SCHEMAS = [ 'ssh', 'tnt', 'sshss']
 
 class Staresc():
 
