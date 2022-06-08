@@ -8,6 +8,7 @@ from typing import Any
 from lib.connection import *
 from lib.exceptions import *
 from lib.core.plugins import *
+from lib.output import *
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
@@ -142,7 +143,10 @@ class Staresc():
         if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
             return None
 
+
         ret_val: dict = {}
+        plugin_output = Output(target=self.connection, plugin=plugin)
+        print(plugin_output.test_results_parsed)                    #TODO find why plugin_output is not reset
         ret_val['plugin'] = os.path.basename(pluginfile)        # assign plugin name/id
 
         # Run all commands and save the results
@@ -156,7 +160,7 @@ class Staresc():
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
 
-
+                plugin_output.add_test_result(stdin=stdin, stdout=stdout, stderr=stderr)
                 test_result =  {                #results to parse
                     'stdin'  : stdin,
                     'stdout' : stdout,
@@ -165,15 +169,23 @@ class Staresc():
                 ret_val['results'].append(test_result)
 
                 if not to_parse:
+                    plugin_output.set_parsed(False)
+                    plugin_output.add_test_result_parsed(stdout='', stderr='')
                     ret_val['parsed'] = False
                     ret_val['parse_results'].append('')
                 else:
-                    ret_val['parse_results'].append(plugin.get_tests()[idx].parse({
+                    parsed_result = plugin.get_tests()[idx].parse({
                         "stdout": test_result["stdout"] or '',
                         "stderr": test_result["stderr"] or ''
-                    }))          # parse test results
+                    })      # parse test results
+
+                    plugin_output.add_test_success(parsed_result[0])
+                    plugin_output.add_test_result_parsed(stdout=parsed_result[1]["stdout"], stderr=parsed_result[1]["stderr"] )
+                    plugin_output.set_parsed(True)
+                    ret_val['parse_results'].append(parsed_result)
                     ret_val['parsed'] = True
             except CommandTimeoutError as e:
+                plugin_output.add_timeout_result(stdin=cmd)
                 ret_val['results'].append( { 'stdin'  : cmd, 'stdout' : '', 'stderr' : '' } )
                 ret_val['parsed'] = True
                 ret_val['parse_results'].append((False, {"stdout" : "", "stderr" : "", "timeout" : True}))

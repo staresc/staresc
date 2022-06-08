@@ -66,10 +66,12 @@ def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) 
 
             pluginfile = os.path.join(plugindir, plugin)
             logger.debug(f"Scanning {connection_string} with plugin {pluginfile} (Will be parsed: {to_parse})")
+            to_happend = None
             try:
                 to_happend = staresc.do_check(pluginfile, to_parse)
-            except Exception:
+            except Exception as e:
                 logger.error(e)
+                print(e.__traceback__)
             if to_happend != None:
                 history.append(to_happend)
 
