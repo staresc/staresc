@@ -27,7 +27,8 @@ class Staresc():
 
         # Check if connection schema is valid
         if not Connection.is_connection_string(connection_string):
-            raise ConnectionStringError(connection_string, SUPPORTED_SCHEMAS)
+            msg = f"invalid connection string: {connection_string}"
+            raise StarescConnectionStringError(msg)
 
         self.connection_string = connection_string
         scheme = Connection.get_scheme(connection_string)
@@ -36,7 +37,8 @@ class Staresc():
         elif TNTConnection.match_scheme(scheme):
             self.connection = TNTConnection(connection_string)
         else:
-            raise SchemeError(scheme)
+            msg = f"scheme is not valid: allowed schemes are {SUPPORTED_SCHEMAS}"
+            raise StarescConnectionStringError(msg)
 
 
     def prepare(self) -> None:
@@ -44,7 +46,7 @@ class Staresc():
             self.connection.connect()
             self.__populate_binpath()
             self.__get_os_info()
-        except Exception as e:
+        except (StarescAuthenticationError, StarescConnectionError, StarescCommandError) as e:
             raise e
 
 
@@ -173,7 +175,7 @@ class Staresc():
                         "stderr": test_result["stderr"] or ''
                     }))          # parse test results
                     ret_val['parsed'] = True
-            except CommandTimeoutError as e:
+            except StarescCommandError as e:
                 ret_val['results'].append( { 'stdin'  : cmd, 'stdout' : '', 'stderr' : '' } )
                 ret_val['parsed'] = True
                 ret_val['parse_results'].append((False, {"stdout" : "", "stderr" : "", "timeout" : True}))

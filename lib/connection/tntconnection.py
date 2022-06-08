@@ -2,7 +2,7 @@ import telnetlib
 from typing import Tuple
 import os,binascii
 
-from lib.exceptions import AuthenticationError, CommandTimeoutError
+from lib.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
 from lib.connection import Connection
 
 
@@ -20,37 +20,50 @@ class TNTConnection(Connection):
 
 
     def connect(self) -> None:
-        host = self.get_hostname(self.connection)
-        port = self.get_port(self.connection)
-        usr, pwd = self.get_credentials(self.connection)
+        telnet_args = {
+            'host'    : self.get_hostname(self.connection),
+            'port'    : self.get_port(self.connection),
+            'timeout' : Connection.COMMAND_TIMEOUT
+        }
 
         try:
-            self.client = telnetlib.Telnet(host, port, timeout=self.COMMAND_TIMEOUT)
+            self.client = telnetlib.Telnet(**telnet_args)
+            
+            usr, pwd = self.get_credentials(self.connection)
             self.client.read_until(b"login:")
             self.client.write(usr.encode('ascii') + b"\n")
             self.client.read_until(b"Password: ")
             self.client.write(pwd.encode('ascii') + b"\n")
-
-            delimiter_canary = binascii.b2a_hex(os.urandom(15))
+        
+        except (OSError,EOFError):
+            msg = f"connection to {telnet_args['host']} failed"
+            raise StarescConnectionError(msg)
+        
+        delimiter_canary = binascii.b2a_hex(os.urandom(15))
+        try:
             self.client.write(b'echo ' + delimiter_canary + b'\n')
             self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n')
-        except Exception:
-            raise AuthenticationError(usr,pwd)
+
+        except (OSError,EOFError):
+            msg = f"Authentication failed for {usr} with password {pwd}"
+            raise StarescAuthenticationError(msg)
 
 
-    def run(self, cmd: str, timeout: float = None) -> Tuple[str, str, str]:
-        if not timeout:
-            timeout = Connection.COMMAND_TIMEOUT
+    def run(self, cmd: str, timeout: float = Connection.COMMAND_TIMEOUT) -> Tuple[str, str, str]:
+
         try:
             delimiter_canary = binascii.b2a_hex(os.urandom(15))
             self.client.write(cmd.encode('ascii') + b"; echo " + delimiter_canary + b'\n')
             stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=timeout)
-        except Exception as e:
-            raise e
 
-        if not (b'\r\n' + delimiter_canary + b'\r\n') in stdout:
+        except (OSError,EOFError):
+            msg = f"connection dropped while executing command: {cmd}"
+            raise StarescCommandError
+
+        if (b'\r\n' + delimiter_canary + b'\r\n') not in stdout:
             # read_until() returned due to timeout
-            raise CommandTimeoutError(command = cmd)
+            msg = f"command {cmd} timed out"
+            raise StarescCommandError(msg)
 
         # extract from stdout the output of cmd
         stdout = stdout.split(delimiter_canary + b'\r\n')[-2]
@@ -59,14 +72,12 @@ class TNTConnection(Connection):
 
 
     def elevate(self) -> bool:
-        root_username, root_passwd = super().get_root_credentials(self.connection)
+        root_username, root_passwd = self.get_root_credentials(self.connection)
         if root_username == '' or root_passwd == '':
             return False
 
         delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
-        stdin, stdout, stderr = self.run(f'echo {root_passwd} | su -c "echo {delimiter_canary}" {root_username}')
+        _, stdout, _ = self.run(f'echo {root_passwd} | su -c "echo {delimiter_canary}" {root_username}')
 
         # check canary
-        if delimiter_canary in stdout:
-            return True
-        return False
+        return delimiter_canary in stdout
