@@ -6,9 +6,10 @@ from lib.plugin_parser import Parser, Matcher, Extractor
 # class that represents a single test (command and relative parsers)
 class Test:
     command: str
-    parsers: list[Parser] = []
+    parsers: list[Parser]
 
     def __init__(self, test_content: dict):
+        self.parsers = []
         try:
             self.command = test_content["command"]
             parsers      = test_content["parsers"]
