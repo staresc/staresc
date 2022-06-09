@@ -20,6 +20,7 @@ import traceback
 from lib.connection import Connection
 from lib.core import Staresc
 from lib.exceptions import *
+from lib.exporter import *
 
 
 # Configure logger
@@ -47,7 +48,7 @@ def cliparse() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) -> dict:
+def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool, exporter: Exporter) -> dict:
     staresc = Staresc(connection_string)
     
     try:
@@ -59,6 +60,7 @@ def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) 
     elevate = staresc.elevate()
 
     history = []
+    output_history = []
     for plugin in os.listdir(plugindir):
         if plugin.endswith('.yaml'):
             if not plugindir.startswith('/'):
@@ -73,13 +75,17 @@ def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) 
                 logger.error(e)
                 print(e.__traceback__)
             if to_happend != None:
-                history.append(to_happend)
+                history.append(to_happend[0])
+                output_history.append(to_happend[1])
+                exporter.add_output(to_happend[1])
+
 
     return { 'staresc' : history, 'connection_string' : connection_string, 'elevated' : elevate }
 
 
 def justparse(outputfile: str, plugindir: str) -> dict:
     
+
     f = open(outputfile, 'r')
     to_parse = json.load(f)
     logger.debug(f"Loaded result file: {outputfile}")
@@ -142,10 +148,13 @@ if __name__ == '__main__':
     if args.timeout:
         Connection.COMMAND_TIMEOUT = args.timeout
 
+    # DEBUG
+    exporter = CSVExporter()
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
         for target in targets:
-            futures.append(executor.submit(scan, target, plugins_dir, (not args.dontparse), args.pubkey))
+            futures.append(executor.submit(scan, target, plugins_dir, (not args.dontparse), args.pubkey, exporter))
             logger.info(f"Started scan on target {target}")
 
         for future in concurrent.futures.as_completed(futures):
@@ -161,5 +170,8 @@ if __name__ == '__main__':
                 outfile = f"{now.year}-{now.month}-{now.day}-{now.hour}:{now.minute}:{now.second}-{Connection.get_hostname(target)}:{Connection.get_port(target)}.json"
                 write(dump, outfile)
                 logger.info(f"Results written: {outfile}")
+
+    # DEBUG
+    exporter.export('/tmp/prova.csv')
              
         

@@ -91,7 +91,7 @@ class Staresc():
         self.osinfo = ' '.join(results)
 
 
-    def do_check(self, pluginfile: str, to_parse: bool) -> dict:
+    def do_check(self, pluginfile: str, to_parse: bool) -> tuple[dict, Output]:
         """
         This is the core function, it will get the plugin file and 
         execute its methods.
@@ -141,12 +141,11 @@ class Staresc():
         plugin = Plugin(plugin_content)
 
         if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
-            return None
+            return None, None
 
 
         ret_val: dict = {}
         plugin_output = Output(target=self.connection, plugin=plugin)
-        print(plugin_output.test_results_parsed)                    #TODO find why plugin_output is not reset
         ret_val['plugin'] = os.path.basename(pluginfile)        # assign plugin name/id
 
         # Run all commands and save the results
@@ -191,9 +190,8 @@ class Staresc():
                 ret_val['parse_results'].append((False, {"stdout" : "", "stderr" : "", "timeout" : True}))
             idx += 1
 
-        # delete plugin obj
-        del plugin
-        return ret_val
+        #TODO cannot delete plugin since it is used by plugin_output, find a way to not create too much plugins (maybe: keep a dict in Plugin class, use plugin id as key, plugin obj as value)
+        return ret_val, plugin_output
 
 
     def do_offline_parsing(self, pluginfile:str, check_results: dict) -> dict:          #TODO adapt this to plugin objects
