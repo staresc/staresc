@@ -3,18 +3,17 @@ import re
 import sys
 import yaml
 from functools import lru_cache
-from typing import Any
 
 from lib.connection import *
 from lib.exceptions import *
-from lib.core.plugins import *
+from lib.plugin_parser import Plugin 
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
 
-SUPPORTED_SCHEMAS = [ 'ssh', 'tnt']
+SUPPORTED_SCHEMAS = [ 'ssh', 'tnt', 'sshss']
 
 class Staresc():
 
@@ -34,6 +33,8 @@ class Staresc():
         scheme = Connection.get_scheme(connection_string)
         if SSHConnection.match_scheme(scheme):
             self.connection = SSHConnection(connection_string)
+        elif SSHSSConnection.match_scheme(scheme):
+            self.connection = SSHSSConnection(connection_string)
         elif TNTConnection.match_scheme(scheme):
             self.connection = TNTConnection(connection_string)
         else:
