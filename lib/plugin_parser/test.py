@@ -1,4 +1,5 @@
 from typing import Tuple
+from lib.exceptions import StarescPluginError
 
 from lib.plugin_parser import Parser, Matcher, Extractor
 
@@ -8,22 +9,32 @@ class Test:
     parsers: list[Parser]
 
     def __init__(self, test_content: dict):
-        if not "command" in test_content:
-            raise Exception("No command defined!")
-        self.command = test_content["command"]
-
-        if (not "parsers" in test_content) or (not isinstance(test_content["parsers"], list)) or len(test_content["parsers"]) < 1:
-            raise Exception("no parser specified or invalid syntax!")
         self.parsers = []
-        for parser_content in test_content["parsers"]:
-            if not "parser_type" in parser_content:
-                raise Exception("parser_type field not found!")
-            if parser_content["parser_type"] == "matcher":
-                self.parsers.append(Matcher(parser_content))
-            elif parser_content["parser_type"] == "extractor":
-                self.parsers.append(Extractor(parser_content))
-            else:
-                raise Exception("Invalid parser_type value")
+        try:
+            self.command = test_content["command"]
+            parsers      = test_content["parsers"]
+
+        except KeyError:
+            msg = "invalid syntax command/parsers"
+            raise StarescPluginError(msg)
+
+        if (not isinstance(parsers, list)) or (len(parsers) < 1):
+            msg = "no parser specified or invalid syntax"
+            raise StarescPluginError(msg)
+        
+        MAP_PARSER = {
+            "matcher"   : Matcher,
+            "extractor" : Extractor,
+        }
+        for parser_content in parsers:
+            try:
+                p = MAP_PARSER[parser_content["parser_type"]](parser_content)
+                self.parsers.append(p)
+
+            except KeyError:
+                msg = "invalid parser_type value"
+                raise StarescPluginError(msg)
+
 
     def get_command(self) -> str:
         return self.command

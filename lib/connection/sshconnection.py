@@ -4,15 +4,15 @@ import os
 from typing import Tuple
 import binascii
 
-from lib.exceptions import AuthenticationError, CommandTimeoutError
+from lib.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
 from lib.connection import Connection
 
 class SSHConnection(Connection):
 
     client: paramiko.SSHClient
 
-    # CompletelyIgnore is a custom policy to ignore missing keys in
-    # paramiko. It will do nothing if keys aren't found
+    # CompletelyIgnore is a custom policy to ignore missing keys 
+    # in paramiko. It will do nothing if keys aren't found
     class CompletelyIgnore(paramiko.MissingHostKeyPolicy):
         def missing_host_key(self, client, hostname, key):
             pass
@@ -29,57 +29,52 @@ class SSHConnection(Connection):
 
     def connect(self):
 
-        h = self.get_hostname(self.connection)
-        p = self.get_port(self.connection)
-        usr, pwd = self.get_credentials(self.connection)
+        paramiko_args = {
+            'hostname' : self.get_hostname(self.connection),
+            'port'     : self.get_port(self.connection),
+        }
+        paramiko_args['username'], paramiko_args['password'] = self.get_credentials(self.connection)
+        if '/' in paramiko_args['password']:
+            paramiko_args['pkey']     = paramiko.RSAKey.from_private_key_file(paramiko_args['password'])
+            paramiko_args['password'] = None
 
-        # We need to generalize the exception for every connection type
         try:
-            if "/" in pwd:
-                self.client.connect(hostname=h, port=p, username=usr, pkey=paramiko.RSAKey.from_private_key_file(pwd))
-            else:
-                self.client.connect(hostname=h, port=p, username=usr, password=pwd)
+            self.client.connect(**paramiko_args)
+            self.client.get_transport().set_keepalive(5)
+
         except paramiko.AuthenticationException:
-            raise AuthenticationError(usr, pwd)
+            msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
+            raise StarescAuthenticationError(msg)
+
+        except paramiko.SSHException:
+            msg = f"An error occured when trying to connect"
+            raise StarescConnectionError(msg)
             
 
-    def run(self, cmd: str, timeout: float = None) -> Tuple[str, str, str]:
-        if not timeout:
-            timeout = Connection.COMMAND_TIMEOUT
-        bufsize = 4096
-        try:
+    def run(self, cmd: str, timeout: float = Connection.COMMAND_TIMEOUT, bufsize: int = 4096) -> Tuple[str, str, str]:
 
-            self.client.get_transport().set_keepalive(5)
+        try:
             chan = self.client.get_transport().open_session()
-            chan.get_pty(
-                term=os.getenv('TERM', 'vt100'), 
-                width=int(os.getenv('COLUMNS', 0)), 
-                height=int(os.getenv('LINES', 0))
-                )
             chan.settimeout(timeout)
+
+            # Sudo usually requires a pty, but not sure if we will run commands with it, so for now it will be disabled
+            # chan.get_pty(term=os.getenv('TERM', 'vt100'), width=int(os.getenv('COLUMNS', 0)), height=int(os.getenv('LINES', 0)))
+
             chan.exec_command(cmd)
 
-            stdin = cmd
-            stdout = b''.join(chan.makefile('rb', bufsize))
-            stderr = b''.join(chan.makefile_stderr('rb', bufsize))
+        except paramiko.SSHException:
+            msg = f"Couldn't open session when trying to run command: {cmd}"
+            raise StarescConnectionError(msg)
 
-        except socket.timeout as e:
-            raise CommandTimeoutError(command = cmd)
-        except Exception as e:
-            raise e
+        except socket.timeout:
+            msg = f"command {cmd} timed out"
+            raise StarescCommandError(msg)
          
-        return stdin, stdout.rstrip(b"\r\n").decode("utf-8"), stderr.rstrip(b"\r\n").decode("utf-8")
-
-
-    def elevate(self) -> bool:
-        root_username, root_passwd = super().get_root_credentials(self.connection)
-        if root_username == '' or root_passwd == '':
-            return False
-
-        delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
-        stdin, stdout, stderr = self.run(f'echo {root_passwd} | su -c "echo {delimiter_canary}" {root_username}')
-
-        # check canary
-        if delimiter_canary in stdout:
-            return True
-        return False
+        return (
+            # stdin
+            cmd, 
+            # stdout
+            b''.join(chan.makefile('rb', bufsize)).rstrip(b"\r\n").decode("utf-8"),
+            # stderr 
+            b''.join(chan.makefile_stderr('rb', bufsize)).rstrip(b"\r\n").decode("utf-8"), 
+        )

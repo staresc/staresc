@@ -2,22 +2,21 @@ import os
 import re
 import sys
 import yaml
+import logging
 from functools import lru_cache
 
 from lib.connection import *
 from lib.exceptions import *
 from lib.plugin_parser import Plugin 
 
-try:
-    from yaml import CLoader as Loader, CDumper as Dumper
-except ImportError:
-    from yaml import Loader, Dumper
+# Configure logger
+logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger(__name__)
 
 SUPPORTED_SCHEMAS = [ 'ssh', 'tnt', 'sshss']
 
 class Staresc():
 
-    connection_string: str
     connection: Connection
     distro: str
     binpath: list
@@ -26,42 +25,37 @@ class Staresc():
 
         # Check if connection schema is valid
         if not Connection.is_connection_string(connection_string):
-            raise ConnectionStringError(connection_string, SUPPORTED_SCHEMAS)
+            msg = f"invalid connection string: {connection_string}"
+            raise StarescConnectionStringError(msg)
 
-        self.connection_string = connection_string
         scheme = Connection.get_scheme(connection_string)
-        if SSHConnection.match_scheme(scheme):
-            self.connection = SSHConnection(connection_string)
-        elif SSHSSConnection.match_scheme(scheme):
-            self.connection = SSHSSConnection(connection_string)
-        elif TNTConnection.match_scheme(scheme):
-            self.connection = TNTConnection(connection_string)
-        else:
-            raise SchemeError(scheme)
+        MAP_CONNECTION = {
+            "ssh"    : SSHConnection,
+            "telnet" : TNTConnection,
+            "sshss"  : SSHSSConnection
+        }
+        try:
+            self.connection = MAP_CONNECTION[scheme](connection_string)
+
+        except KeyError:
+            msg = f"scheme is not valid: allowed schemes are {SUPPORTED_SCHEMAS}"
+            raise StarescConnectionStringError(msg)            
 
 
     def prepare(self) -> None:
-        try:
-            self.connection.connect()
-            self.__populate_binpath()
-            self.__get_os_info()
-        except Exception as e:
-            raise e
+        self.connection.connect()
+        self.__populate_binpath()
+        self.__get_os_info()
 
 
-    def __populate_binpath(self) -> bool:
+    def __populate_binpath(self):
         cmd = f"""for p in $( echo $PATH | tr ':' ' ' ); do find "$p" -type f; done"""
-        try:
-            stdin, stdout, stderr = self.connection.run(cmd)
-        except Exception as e:
-            raise e
+        stdin, stdout, stderr = self.connection.run(cmd)
 
         if not stdin or not stdout or stderr:
             self.binpath = []
-            return False
-
-        self.binpath = stdout.split("\r\n")
-        return True
+        else:
+            self.binpath = stdout.split("\r\n")
         
 
     @lru_cache(maxsize=100)
@@ -91,94 +85,69 @@ class Staresc():
         self.osinfo = ' '.join(results)
 
 
-    def do_check(self, pluginfile: str, to_parse: bool) -> dict:
-        """
-        This is the core function, it will get the plugin file and 
-        execute its methods.
-
-        Attributes:
-            pluginfile -- file to load methods from
-            to_parse -- boolean that tells to parse the output right away or not
-
-        Returns:
-            dict -- a dictionary with check results, as follows:
-                {
-                    plugin: "example.py",
-                    results: [
-                        {
-                            stdin0 -- should match with get_commands()[0],
-                            stdout0,
-                            stderr0
-                        },
-                        {
-                            stdin1 -- should match with get_commands()[1],
-                            stdout1,
-                            stderr1
-                        },
-                        ...
-                    ],
-                    parsed: True/False,
-                    parse_results: "str"
-                }
-        """
-        
-        # Now plugin should have get_commands(), get_matcher()
-        # and parse() defined. The references to this plugin
-        # must be deleted at the end of the function to be
-        # garbage collected, allowing a greater number of plugins
-        # Append plugin directory to (python) system path
+    def do_check(self, pluginfile: str, to_parse: bool = True) -> dict:        
+        # load plugin from directory
         basedir = os.path.dirname(pluginfile)
         if basedir not in sys.path:
             sys.path.append(basedir)
 
-        # Load plugin as module
-        plugin_basename = os.path.basename(pluginfile)
-        plugin_module = os.path.splitext(plugin_basename)[0]
+        # load plugin file into object
+        with open(pluginfile, "r") as f: 
+            plugin_content = yaml.load(f.read(), Loader=yaml.Loader)
+            plugin = Plugin(plugin_content)
 
-        f = open(pluginfile, "r")
-        plugin_content = yaml.load(f.read(), Loader=Loader)
-        f.close()
-        plugin = Plugin(plugin_content)
-
-        if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
+        # check distro matcher
+        if not re.findall(plugin.get_distribution_matcher(), self.osinfo):
             return None
 
-        ret_val: dict = {}
-        ret_val['plugin'] = os.path.basename(pluginfile)        # assign plugin name/id
+        ret_val: dict            = {}
+        # results of the commands
+        ret_val['results']       = []
+        # results parsed by the parsers
+        ret_val['parse_results'] = []
+
+        # assign plugin name/id
+        ret_val['plugin'] = os.path.basename(pluginfile)
 
         # Run all commands and save the results
-        ret_val['results'] = []             # results of the commands
-        ret_val['parse_results'] = []       # results parsed by the parsers
-        idx = 0                             # index of the text being ran
+        test_index = 0
         for test in plugin.get_tests():
             cmd = test.get_command()
             # Try to use absolute paths for the command
-            cmd = self.__which(cmd.split(' ')[0]) + ' ' + ' '.join(cmd.split(' ')[1:])
+            bin  = cmd.split(' ')[0]
+            args = ' '.join(cmd.split(' ')[1:])
+            cmd  = f"{self.__which(bin)} {args}" 
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
 
-
-                test_result =  {                #results to parse
-                    'stdin'  : stdin,
-                    'stdout' : stdout,
-                    'stderr' : stderr
-                }
-                ret_val['results'].append(test_result)
-
-                if not to_parse:
-                    ret_val['parsed'] = False
-                    ret_val['parse_results'].append('')
-                else:
-                    ret_val['parse_results'].append(plugin.get_tests()[idx].parse({
-                        "stdout": test_result["stdout"] or '',
-                        "stderr": test_result["stderr"] or ''
-                    }))          # parse test results
-                    ret_val['parsed'] = True
-            except CommandTimeoutError as e:
+            except StarescCommandError as e:
+                logger.warning(e)
+                stdin, stdout, stderr 
                 ret_val['results'].append( { 'stdin'  : cmd, 'stdout' : '', 'stderr' : '' } )
                 ret_val['parsed'] = True
                 ret_val['parse_results'].append((False, {"stdout" : "", "stderr" : "", "timeout" : True}))
-            idx += 1
+                test_index += 1
+                continue
+
+            # command output to parse
+            test_result =  {                
+                'stdin'  : stdin,
+                'stdout' : stdout,
+                'stderr' : stderr
+            }
+            ret_val['results'].append(test_result)
+
+            if not to_parse:
+                ret_val['parsed'] = False
+                ret_val['parse_results'].append('')
+            else:
+                parsed_result = plugin.get_tests()[test_index].parse({
+                    "stdout": test_result["stdout"],
+                    "stderr": test_result["stderr"]
+                }) 
+                ret_val['parse_results'].append(parsed_result)
+                ret_val['parsed'] = True
+            test_index += 1
 
         # delete plugin obj
         del plugin
