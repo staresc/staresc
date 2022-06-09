@@ -42,3 +42,14 @@ class StarescConnectionError(Exception):
 
     def __init__(self, msg: str):
         super().__init__(msg)
+
+
+class StarescPluginError(Exception):
+    """Exception raised when the plugin syntax is wrong
+
+    Attributes:
+        msg -- meesage to be displayed
+    """
+
+    def __init__(self, msg: str):
+        super().__init__(msg)
