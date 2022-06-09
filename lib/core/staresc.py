@@ -3,11 +3,10 @@ import re
 import sys
 import yaml
 from functools import lru_cache
-from typing import Any
 
 from lib.connection import *
 from lib.exceptions import *
-from lib.core.plugins import *
+from lib.plugin_parser import Plugin 
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
