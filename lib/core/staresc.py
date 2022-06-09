@@ -13,7 +13,7 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-SUPPORTED_SCHEMAS = [ 'ssh', 'tnt']
+SUPPORTED_SCHEMAS = [ 'ssh', 'tnt', 'sshss']
 
 class Staresc():
 
@@ -32,6 +32,8 @@ class Staresc():
         scheme = Connection.get_scheme(connection_string)
         if SSHConnection.match_scheme(scheme):
             self.connection = SSHConnection(connection_string)
+        elif SSHSSConnection.match_scheme(scheme):
+            self.connection = SSHSSConnection(connection_string)
         elif TNTConnection.match_scheme(scheme):
             self.connection = TNTConnection(connection_string)
         else:
