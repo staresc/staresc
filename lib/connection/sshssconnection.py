@@ -5,7 +5,7 @@ from typing import Tuple
 import binascii
 import re
 
-from lib.exceptions import AuthenticationError, CommandTimeoutError
+from lib.exceptions import StarescAuthenticationError, StarescCommandError
 from lib.connection import Connection
 
 class SSHSSConnection(Connection):
@@ -30,37 +30,44 @@ class SSHSSConnection(Connection):
 
 
     def connect(self):
-        h = self.get_hostname(self.connection)
-        p = self.get_port(self.connection)
-        usr, pwd = self.get_credentials(self.connection)
+        paramiko_args = {
+            'hostname' : self.get_hostname(self.connection),
+            'port'     : self.get_port(self.connection),
+        }
+        paramiko_args['username'], paramiko_args['password'] = self.get_credentials(self.connection)
+        if '/' in paramiko_args['password']:
+            paramiko_args['pkey']     = paramiko.RSAKey.from_private_key_file(paramiko_args['password'])
+            paramiko_args['password'] = None
 
-        # We need to generalize the exception for every connection type
+        
         try:
-            if "/" in pwd:
-                self.client.connect(hostname=h, port=p, username=usr, pkey=paramiko.RSAKey.from_private_key_file(pwd))
-            else:
-                self.client.connect(hostname=h, port=p, username=usr, password=pwd)
-
+            self.client.connect(**paramiko_args)
             self.chan = self.client.invoke_shell()
             self.stdin = self.chan.makefile('wb')
             self.stdout = self.chan.makefile('r')
+
         except paramiko.AuthenticationException:
-            raise AuthenticationError(usr, pwd)
+            msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
+            raise StarescAuthenticationError(msg)
+
+        except paramiko.SSHException:
+            msg = f"An error occured when trying to connect"
+            raise StarescCommandError(msg)
             
 
-    def run(self, cmd: str, timeout: float = None) -> Tuple[str, str, str]:
-        if not timeout:
-            timeout = Connection.COMMAND_TIMEOUT
+    def run(self, cmd: str, timeout: float = Connection.COMMAND_TIMEOUT) -> Tuple[str, str, str]:
+        
+        self.chan.settimeout(timeout)
+
+        # Send cmd and delimiter canary
+        delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
+        canary_cmd = f'echo {delimiter_canary}'
+        
+        self.stdin.write(cmd + '\n')
+        self.stdin.write(canary_cmd + '\n')
+        self.stdin.flush()
+
         try:
-            self.chan.settimeout(timeout)
-
-            # Send cmd and delimiter canary
-            delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
-            self.stdin.write(cmd + '\n')
-            canary_cmd = f'echo {delimiter_canary}'
-            self.stdin.write(f'echo {delimiter_canary}' + '\n')
-            self.stdin.flush()
-
             tmpout = []
             for line in self.stdout:
                 # get rid of 'coloring and formatting' special characters
@@ -81,22 +88,24 @@ class SSHSSConnection(Connection):
                 tmpout.pop(0)
 
         except socket.timeout as e:
-            raise CommandTimeoutError(command=cmd)
-        except Exception as e:
-            raise e
+            msg = f"Command {cmd} timed out"
+            raise StarescCommandError(msg)
 
-        return cmd, ''.join(tmpout).rstrip(), ''
+        except IndexError:
+            return (
+                # stdin
+                cmd,
+                #stdout
+                ''.join(tmpout).rstrip(), 
+                #stderr
+                ''
+            )
 
-
-    def elevate(self) -> bool:
-        root_username, root_passwd = super().get_root_credentials(self.connection)
-        if root_username == '' or root_passwd == '':
-            return False
-
-        delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
-        stdin, stdout, stderr = self.run(f'echo {root_passwd} | su -c "echo {delimiter_canary}" {root_username}')
-
-        # check canary
-        if delimiter_canary in stdout:
-            return True
-        return False
+        return (
+            # stdin
+            cmd,
+            #stdout
+            ''.join(tmpout).rstrip(), 
+            #stderr
+            ''
+        )

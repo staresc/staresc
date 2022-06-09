@@ -21,7 +21,6 @@ class SSHConnection(Connection):
         super().__init__(connection)
         self.client = paramiko.SSHClient()
         self.client.set_missing_host_key_policy(self.CompletelyIgnore)
-        self.client.get_transport().set_keepalive(5)
 
     @staticmethod
     def match_scheme(s: str) -> bool:
@@ -41,6 +40,7 @@ class SSHConnection(Connection):
 
         try:
             self.client.connect(**paramiko_args)
+            self.client.get_transport().set_keepalive(5)
 
         except paramiko.AuthenticationException:
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
@@ -78,15 +78,3 @@ class SSHConnection(Connection):
             # stderr 
             b''.join(chan.makefile_stderr('rb', bufsize)).rstrip(b"\r\n").decode("utf-8"), 
         )
-
-
-    def elevate(self) -> bool:
-        root_username, root_passwd = self.get_root_credentials(self.connection)
-        if root_username == '' or root_passwd == '':
-            return False
-
-        delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
-        _, stdout, _ = self.run(f'echo {root_passwd} | su -c "echo {delimiter_canary}" {root_username}')
-
-        # check canary
-        return delimiter_canary in stdout

@@ -69,15 +69,3 @@ class TNTConnection(Connection):
         stdout = stdout.split(delimiter_canary + b'\r\n')[-2]
         stdout = stdout.rstrip(b'\r\n').decode('ascii')
         return cmd, stdout, None
-
-
-    def elevate(self) -> bool:
-        root_username, root_passwd = self.get_root_credentials(self.connection)
-        if root_username == '' or root_passwd == '':
-            return False
-
-        delimiter_canary = binascii.b2a_hex(os.urandom(15)).decode('ascii')
-        _, stdout, _ = self.run(f'echo {root_passwd} | su -c "echo {delimiter_canary}" {root_username}')
-
-        # check canary
-        return delimiter_canary in stdout
