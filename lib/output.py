@@ -43,7 +43,7 @@ class Output():
 
 
     def add_timeout_result(self, stdin: str) -> None:
-        self.add_test_result(stdin='', stdout='', stderr='')
+        self.add_test_result(stdin=stdin, stdout='', stderr='')
         self.add_test_result_parsed(stdout='', stderr='')
         self.test_timeout.append(True)
 

@@ -70,15 +70,14 @@ class CSVExporter(Exporter):
 
     @staticmethod
     def __parse_technical_details(output: Output) -> str:
-        tech_details = []
-        for t_res in output.test_results:
-            tech_details.append({
-                "stdin": t_res["stdin"],
-                "stdout": t_res["stdout"],
-                "stderr": t_res["stderr"]
-            })
+        tech_details = ""
+        for i in range(len(output.test_results)):
+            tech_details += f"cmd: {output.test_results[i]['stdin']}\n"
+            tech_details += f"stdout: {output.test_results_parsed[i]['stdout']}\n"
+            tech_details += f"stderr: {output.test_results_parsed[i]['stderr']}\n"
+            tech_details += "\n\n\n"
         #TODO understand how to pick a valid and minimal poc, TODO check a way to extract info without directly read object field (use some interface method)
-        return str(tech_details)
+        return tech_details
 
 
     @staticmethod
