@@ -44,6 +44,7 @@ def cliparse() -> argparse.Namespace:
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
     parser.add_argument( '-r', '--results', action='store', metavar='R', default='', help='results to be parsed (if already existing)' )
     parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target, default: {Connection.COMMAND_TIMEOUT}s')
+    parser.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
     targets = parser.add_mutually_exclusive_group(required=True)
     targets.add_argument( '-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
@@ -70,7 +71,7 @@ def parse_plugins(plugins_dir: str) -> list[Plugin]:
 
     return plugins
 
-def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate: bool, exporter: Exporter) -> dict:
+def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate: bool, exporters: list[Exporter]) -> dict:
     staresc = Staresc(connection_string)
     
     try:
@@ -87,10 +88,14 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
         logger.debug(f"Scanning {connection_string} with plugin {plugin.id} (Will be parsed: {to_parse})")
         to_append = None
         try:
-            exporter.add_output(staresc.do_check(plugin, to_parse))
+            to_append = staresc.do_check(plugin, to_parse)
+
         except Exception as e:
             logger.error(e)
             print(e.__traceback__)
+        if to_append:
+            for exp in exporters:
+                exp.add_output(to_append)
     return { 'staresc' : history, 'connection_string' : connection_string, 'elevated' : elevate }
 
 
@@ -144,6 +149,18 @@ if __name__ == '__main__':
         targets = [ str(args.connection) ]
         logger.debug(f"Loaded connection: {args.connection}")
 
+    if args.timeout:
+        Connection.COMMAND_TIMEOUT = args.timeout
+
+    exporters = []
+    now = datetime.now()
+    default_output_filename = f"staresc__{now.year}-{now.month}-{now.day}-{now.hour}:{now.minute}:{now.second}"
+
+    if args.output_csv:
+        filename = CSVExporter.format_filename(args.output_csv, default_name = default_output_filename)
+        exporters.append(CSVExporter(filename))
+
+
     if not args.config:
         plugins_dir = os.path.dirname(os.path.realpath(__file__))
         plugins_dir = os.path.join(plugins_dir, "plugins/")
@@ -156,18 +173,13 @@ if __name__ == '__main__':
         write(results, outfile)
         logger.info(f"Wrote parsed file to {outfile}")
         exit(0)
-    if args.timeout:
-        Connection.COMMAND_TIMEOUT = args.timeout
 
     plugins = parse_plugins(plugins_dir)
-
-    # DEBUG
-    exporter = CSVExporter()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
         for target in targets:
-            futures.append(executor.submit(scan, target, plugins, (not args.dontparse), args.pubkey, exporter))
+            futures.append(executor.submit(scan, target, plugins, (not args.dontparse), args.pubkey, exporters))
             logger.info(f"Started scan on target {target}")
 
         for future in concurrent.futures.as_completed(futures):
@@ -184,7 +196,8 @@ if __name__ == '__main__':
                 write(dump, outfile)
                 logger.info(f"Results written: {outfile}")
 
-    # DEBUG
-    exporter.export('/tmp/prova.csv')
+    # export results on file
+    for exp in exporters:
+        exp.export()
              
         

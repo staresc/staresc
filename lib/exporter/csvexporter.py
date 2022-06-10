@@ -1,16 +1,18 @@
 import csv
-
+import os
 from .exporter import Exporter
 from lib.output import *
 
 class CSVExporter(Exporter):
 
-    COLUMNS = ["Host IP", "Vulnerable", "Any timeout", "CVSS score", "Vulnerability name", "Description", "Technical details", "Remediation", "CVSS vector"]
+    COLUMNS = ["Host IP", "Port", "Scheme","Vulnerable", "Any timeout", "CVSS score", "Vulnerability name", "Description", "Technical details", "Remediation", "CVSS vector", "Complete log"]
     #TODO should we need CVE field?
 
-    def export(self, filename: str) -> None:
+    def export(self, filename: str = '') -> None:
         MATCHER_TO_FUNC = {
             "Host IP" : self.__parse_host_ip,
+            "Port" : self.__parse_port,
+            "Scheme" : self.__parse_scheme,
             "Vulnerable": self.__parse_vuln_found,
             "Any timeout": self.__parse_any_timeout,
             "CVSS score"  : self.__parse_cvss_score,
@@ -19,6 +21,7 @@ class CSVExporter(Exporter):
             "Technical details"  : self.__parse_technical_details,
             "Remediation"  : self.__parse_remediation,
             "CVSS vector"  : self.__parse_cvss_vector,
+            "Complete log"  : self.__parse_complete_log,
         }
 
         out_rows = [self.COLUMNS]
@@ -32,6 +35,8 @@ class CSVExporter(Exporter):
                     tmp_row.append('-')
             out_rows.append(tmp_row)
 
+        if not filename:
+            filename = self.filename
         f_out = open(filename, 'w')
         csv_writer = csv.writer(f_out, delimiter=';')
         csv_writer.writerows(out_rows)
@@ -39,8 +44,31 @@ class CSVExporter(Exporter):
 
 
     @staticmethod
+    def format_filename(filename: str, default_name: str = '') -> str:
+        name, extension = os.path.splitext(filename)
+        # Use default_name if filename not specified
+        if filename == '':
+            filename = default_name
+        # Add extension if not specified
+        if extension == '':
+            extension = '.csv'
+        # Use absolute path
+        if not name.startswith('/'):
+            name = os.path.join(os.getcwd(), name)
+        return os.path.abspath(name + extension)
+
+    @staticmethod
     def __parse_host_ip(output: Output) -> str:
         return Connection.get_hostname(output.target.connection)
+
+    @staticmethod
+    def __parse_port(output: Output) -> int:
+        return Connection.get_port(output.target.connection)
+
+
+    @staticmethod
+    def __parse_scheme(output: Output) -> str:
+        return Connection.get_scheme(output.target.connection)
 
 
     @staticmethod
@@ -88,6 +116,18 @@ class CSVExporter(Exporter):
     @staticmethod
     def __parse_any_timeout(output: Output) -> bool:
         return any(output.get_timeouts())
+
+
+    @staticmethod
+    def __parse_complete_log(output: Output) -> str:
+        ret = []
+        for test_res in output.test_results:
+            ret.append({
+                "stdin": test_res["stdin"],
+                "stdout": test_res["stdout"],
+                "stderr": test_res["stderr"],
+            })
+        return str(ret)
 
 
 
