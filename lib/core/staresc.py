@@ -91,107 +91,40 @@ class Staresc():
         self.osinfo = ' '.join(results)
 
 
-    def do_check(self, pluginfile: str, to_parse: bool) -> tuple[dict, Output]:
-        """
-        This is the core function, it will get the plugin file and 
-        execute its methods.
-
-        Attributes:
-            pluginfile -- file to load methods from
-            to_parse -- boolean that tells to parse the output right away or not
-
-        Returns:
-            dict -- a dictionary with check results, as follows:
-                {
-                    plugin: "example.py",
-                    results: [
-                        {
-                            stdin0 -- should match with get_commands()[0],
-                            stdout0,
-                            stderr0
-                        },
-                        {
-                            stdin1 -- should match with get_commands()[1],
-                            stdout1,
-                            stderr1
-                        },
-                        ...
-                    ],
-                    parsed: True/False,
-                    parse_results: "str"
-                }
-        """
-        
-        # Now plugin should have get_commands(), get_matcher()
-        # and parse() defined. The references to this plugin
-        # must be deleted at the end of the function to be
-        # garbage collected, allowing a greater number of plugins
-        # Append plugin directory to (python) system path
-        basedir = os.path.dirname(pluginfile)
-        if basedir not in sys.path:
-            sys.path.append(basedir)
-
-        # Load plugin as module
-        plugin_basename = os.path.basename(pluginfile)
-        plugin_module = os.path.splitext(plugin_basename)[0]
-
-        f = open(pluginfile, "r")
-        plugin_content = yaml.load(f.read(), Loader=Loader)
-        f.close()
-        plugin = Plugin(plugin_content)
-
+    def do_check(self, plugin: Plugin, to_parse: bool) -> Output:
         if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
-            return None, None
+            return None
 
-
-        ret_val: dict = {}
         plugin_output = Output(target=self.connection, plugin=plugin)
-        ret_val['plugin'] = os.path.basename(pluginfile)        # assign plugin name/id
-
-        # Run all commands and save the results
-        ret_val['results'] = []             # results of the commands
-        ret_val['parse_results'] = []       # results parsed by the parsers
-        idx = 0                             # index of the text being ran
+        # Run all commands and return the output
+        idx = 0                             # index of the text being run
         for test in plugin.get_tests():
             cmd = test.get_command()
             # Try to use absolute paths for the command
             cmd = self.__which(cmd.split(' ')[0]) + ' ' + ' '.join(cmd.split(' ')[1:])
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
-
                 plugin_output.add_test_result(stdin=stdin, stdout=stdout, stderr=stderr)
-                test_result =  {                #results to parse
-                    'stdin'  : stdin,
-                    'stdout' : stdout,
-                    'stderr' : stderr
-                }
-                ret_val['results'].append(test_result)
-
                 if not to_parse:
                     plugin_output.set_parsed(False)
                     plugin_output.add_test_result_parsed(stdout='', stderr='')
-                    ret_val['parsed'] = False
-                    ret_val['parse_results'].append('')
                 else:
-                    parsed_result = plugin.get_tests()[idx].parse({
-                        "stdout": test_result["stdout"] or '',
-                        "stderr": test_result["stderr"] or ''
+                    positive_test, parsed_result = plugin.get_tests()[idx].parse({
+                        "stdout": stdout or '',
+                        "stderr": stderr or ''
                     })      # parse test results
 
-                    plugin_output.add_test_success(parsed_result[0])
-                    plugin_output.add_test_result_parsed(stdout=parsed_result[1]["stdout"], stderr=parsed_result[1]["stderr"] )
+                    plugin_output.add_test_success(positive_test)
+                    plugin_output.add_test_result_parsed(stdout=parsed_result["stdout"], stderr=parsed_result["stderr"] )
                     plugin_output.set_parsed(True)
-                    ret_val['parse_results'].append(parsed_result)
-                    ret_val['parsed'] = True
+                    if positive_test:
+                        plugin_output.set_vuln_found(True)
+                        break
             except CommandTimeoutError as e:
                 plugin_output.add_timeout_result(stdin=cmd)
-                ret_val['results'].append( { 'stdin'  : cmd, 'stdout' : '', 'stderr' : '' } )
-                ret_val['parsed'] = True
-                ret_val['parse_results'].append((False, {"stdout" : "", "stderr" : "", "timeout" : True}))
             idx += 1
 
-        #TODO cannot delete plugin since it is used by plugin_output, find a way to not create too much plugins (maybe: keep a dict in Plugin class, use plugin id as key, plugin obj as value)
-        return ret_val, plugin_output
+        return plugin_output
 
 
     def do_offline_parsing(self, pluginfile:str, check_results: dict) -> dict:          #TODO adapt this to plugin objects

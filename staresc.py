@@ -21,7 +21,13 @@ from lib.connection import Connection
 from lib.core import Staresc
 from lib.exceptions import *
 from lib.exporter import *
+from lib.core.plugins import Plugin
+import yaml
 
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
 # Configure logger
 logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -47,8 +53,24 @@ def cliparse() -> argparse.Namespace:
     targets.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
     return parser.parse_args()
 
+def parse_plugins(plugins_dir: str) -> list[Plugin]:
+    plugins = []
 
-def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool, exporter: Exporter) -> dict:
+    if not plugins_dir.startswith('/'):
+        plugins_dir = os.path.join(os.getcwd(), plugins_dir)
+
+    for plugin_filename in os.listdir(plugins_dir):
+        if plugin_filename.endswith('.yaml'):
+            plugin_filename_long = os.path.join(plugins_dir, plugin_filename)
+            f = open(plugin_filename_long, "r")
+            plugin_content = yaml.load(f.read(), Loader=Loader)
+            f.close()
+            tmp_plugin = Plugin(plugin_content)
+            plugins.append(tmp_plugin)
+
+    return plugins
+
+def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate: bool, exporter: Exporter) -> dict:
     staresc = Staresc(connection_string)
     
     try:
@@ -61,25 +83,14 @@ def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool, 
 
     history = []
     output_history = []
-    for plugin in os.listdir(plugindir):
-        if plugin.endswith('.yaml'):
-            if not plugindir.startswith('/'):
-                plugindir = os.path.join(os.getcwd(), plugindir)
-
-            pluginfile = os.path.join(plugindir, plugin)
-            logger.debug(f"Scanning {connection_string} with plugin {pluginfile} (Will be parsed: {to_parse})")
-            to_happend = None
-            try:
-                to_happend = staresc.do_check(pluginfile, to_parse)
-            except Exception as e:
-                logger.error(e)
-                print(e.__traceback__)
-            if to_happend != None:
-                history.append(to_happend[0])
-                output_history.append(to_happend[1])
-                exporter.add_output(to_happend[1])
-
-
+    for plugin in plugins:
+        logger.debug(f"Scanning {connection_string} with plugin {plugin.id} (Will be parsed: {to_parse})")
+        to_append = None
+        try:
+            exporter.add_output(staresc.do_check(plugin, to_parse))
+        except Exception as e:
+            logger.error(e)
+            print(e.__traceback__)
     return { 'staresc' : history, 'connection_string' : connection_string, 'elevated' : elevate }
 
 
@@ -148,13 +159,15 @@ if __name__ == '__main__':
     if args.timeout:
         Connection.COMMAND_TIMEOUT = args.timeout
 
+    plugins = parse_plugins(plugins_dir)
+
     # DEBUG
     exporter = CSVExporter()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
         for target in targets:
-            futures.append(executor.submit(scan, target, plugins_dir, (not args.dontparse), args.pubkey, exporter))
+            futures.append(executor.submit(scan, target, plugins, (not args.dontparse), args.pubkey, exporter))
             logger.info(f"Started scan on target {target}")
 
         for future in concurrent.futures.as_completed(futures):
