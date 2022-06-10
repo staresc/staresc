@@ -8,7 +8,7 @@ class CSVExporter(Exporter):
     COLUMNS = ["Host IP", "Port", "Scheme","Vulnerable", "Any timeout", "CVSS score", "Vulnerability name", "Description", "Technical details", "Remediation", "CVSS vector", "Complete log"]
     #TODO should we need CVE field?
 
-    def export(self, filename: str = '') -> None:
+    def export(self) -> None:
         MATCHER_TO_FUNC = {
             "Host IP" : self.__parse_host_ip,
             "Port" : self.__parse_port,
@@ -35,9 +35,7 @@ class CSVExporter(Exporter):
                     tmp_row.append('-')
             out_rows.append(tmp_row)
 
-        if not filename:
-            filename = self.filename
-        f_out = open(filename, 'w')
+        f_out = open(self.filename, 'w')
         csv_writer = csv.writer(f_out, delimiter=';')
         csv_writer.writerows(out_rows)
         f_out.close()

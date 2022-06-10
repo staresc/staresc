@@ -15,7 +15,7 @@ class Exporter():
         self.runs_results.put(output)
 
 
-    def export(self, filename: str = '') -> None:
+    def export(self) -> None:
         pass
 
     @staticmethod

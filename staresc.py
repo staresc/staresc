@@ -13,6 +13,7 @@ import os
 import json
 import concurrent.futures
 from datetime import datetime
+from tabulate import tabulate
 
 # debug
 import traceback
@@ -72,6 +73,7 @@ def parse_plugins(plugins_dir: str) -> list[Plugin]:
     return plugins
 
 def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate: bool, exporters: list[Exporter]) -> dict:
+    vulns_severity = {}
     staresc = Staresc(connection_string)
     
     try:
@@ -94,9 +96,18 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
             logger.error(e)
             print(e.__traceback__)
         if to_append:
+            # Add output to exporters
             for exp in exporters:
                 exp.add_output(to_append)
-    return { 'staresc' : history, 'connection_string' : connection_string, 'elevated' : elevate }
+            # Keep tracks of vulns found in this target
+            if to_append.is_vuln_found():
+                logger.info("{:<20s}{:<30s}{:<15s}".format(f"[{Connection.get_hostname(connection_string)}]", f"[{plugin.id}]", f"[{plugin.severity}]"))
+                to_append_severity = plugin.severity
+                if to_append_severity in vulns_severity:
+                    vulns_severity[to_append_severity] += 1
+                else:
+                    vulns_severity[to_append_severity] = 1
+    return vulns_severity
 
 
 def justparse(outputfile: str, plugindir: str) -> dict:
@@ -185,19 +196,23 @@ if __name__ == '__main__':
         for future in concurrent.futures.as_completed(futures):
             target = targets[futures.index(future)]
             try:
-                dump = future.result()
+                scan_summary = future.result()
                 logger.info(f"Finished scan on target {target}")
+                if len(scan_summary) == 0:
+                    logger.info(f"Scan summary for {Connection.get_hostname(target)}\nNO VULN FOUND")
+                else:
+                    scan_summary_table = []
+                    for sev, freq in scan_summary.items():
+                        scan_summary_table.append([sev, freq])
+                    logger.info(f"Scan summary for {Connection.get_hostname(target)}\n" + tabulate(scan_summary_table, headers=["SEVERITY", "VULN FOUND"], tablefmt="github"))
             except Exception as e:
                 traceback.print_exc()
                 print(f"{target} generated an exception: {e}")
-            else:
-                now = datetime.now()
-                outfile = f"{now.year}-{now.month}-{now.day}-{now.hour}:{now.minute}:{now.second}-{Connection.get_hostname(target)}:{Connection.get_port(target)}.json"
-                write(dump, outfile)
-                logger.info(f"Results written: {outfile}")
 
     # export results on file
     for exp in exporters:
         exp.export()
+        logger.info(f"Report exported in file: {exp.filename}")
+
              
         
