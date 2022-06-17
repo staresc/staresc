@@ -2,6 +2,7 @@
 
 from .connection import Connection
 from .sshconnection import SSHConnection
-from .tntconnection import TNTConnection 
+from .sshssconnection import SSHSSConnection
+from .tntconnection import TNTConnection
 
 pass

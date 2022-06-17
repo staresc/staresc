@@ -2,24 +2,23 @@ import os
 import re
 import sys
 import yaml
+import logging
 from functools import lru_cache
-from typing import Any
 
 from lib.connection import *
 from lib.exceptions import *
 from lib.core.plugins import *
 from lib.output import *
 
-try:
-    from yaml import CLoader as Loader, CDumper as Dumper
-except ImportError:
-    from yaml import Loader, Dumper
 
-SUPPORTED_SCHEMAS = [ 'ssh', 'tnt']
+# Configure logger
+logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger(__name__)
+
+SUPPORTED_SCHEMAS = [ 'ssh', 'tnt', 'sshss']
 
 class Staresc():
 
-    connection_string: str
     connection: Connection
     distro: str
     binpath: list
@@ -28,40 +27,37 @@ class Staresc():
 
         # Check if connection schema is valid
         if not Connection.is_connection_string(connection_string):
-            raise ConnectionStringError(connection_string, SUPPORTED_SCHEMAS)
+            msg = f"invalid connection string: {connection_string}"
+            raise StarescConnectionStringError(msg)
 
-        self.connection_string = connection_string
         scheme = Connection.get_scheme(connection_string)
-        if SSHConnection.match_scheme(scheme):
-            self.connection = SSHConnection(connection_string)
-        elif TNTConnection.match_scheme(scheme):
-            self.connection = TNTConnection(connection_string)
-        else:
-            raise SchemeError(scheme)
+        MAP_CONNECTION = {
+            "ssh"    : SSHConnection,
+            "telnet" : TNTConnection,
+            "sshss"  : SSHSSConnection
+        }
+        try:
+            self.connection = MAP_CONNECTION[scheme](connection_string)
+
+        except KeyError:
+            msg = f"scheme is not valid: allowed schemes are {SUPPORTED_SCHEMAS}"
+            raise StarescConnectionStringError(msg)            
 
 
     def prepare(self) -> None:
-        try:
-            self.connection.connect()
-            self.__populate_binpath()
-            self.__get_os_info()
-        except Exception as e:
-            raise e
+        self.connection.connect()
+        self.__populate_binpath()
+        self.__get_os_info()
 
 
-    def __populate_binpath(self) -> bool:
+    def __populate_binpath(self):
         cmd = f"""for p in $( echo $PATH | tr ':' ' ' ); do find "$p" -type f; done"""
-        try:
-            stdin, stdout, stderr = self.connection.run(cmd)
-        except Exception as e:
-            raise e
+        stdin, stdout, stderr = self.connection.run(cmd)
 
         if not stdin or not stdout or stderr:
             self.binpath = []
-            return False
-
-        self.binpath = stdout.split("\r\n")
-        return True
+        else:
+            self.binpath = stdout.split("\r\n")
         
 
     @lru_cache(maxsize=100)
@@ -98,10 +94,13 @@ class Staresc():
         plugin_output = Output(target=self.connection, plugin=plugin)
         # Run all commands and return the output
         idx = 0                             # index of the text being run
+
         for test in plugin.get_tests():
             cmd = test.get_command()
             # Try to use absolute paths for the command
-            cmd = self.__which(cmd.split(' ')[0]) + ' ' + ' '.join(cmd.split(' ')[1:])
+            bin  = cmd.split(' ')[0]
+            args = ' '.join(cmd.split(' ')[1:])
+            cmd  = f"{self.__which(bin)} {args}" 
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
                 plugin_output.add_test_result(stdin=stdin, stdout=stdout, stderr=stderr)
@@ -123,7 +122,6 @@ class Staresc():
             except CommandTimeoutError as e:
                 plugin_output.add_timeout_result(stdin=cmd)
             idx += 1
-
         return plugin_output
 
 

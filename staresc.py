@@ -78,14 +78,13 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
     
     try:
         staresc.prepare()
-    except (CommandTimeoutError, AuthenticationError, Exception) as e:
+    except (StarescCommandError, StarescAuthenticationError, Exception) as e:
         logger.error(f"Initialization of {connection_string} raised Exception {type(e)} => {e}")
         return {}
 
-    elevate = staresc.elevate()
-
-    history = []
-    output_history = []
+    # For future reference
+    # elevate = staresc.elevate()
+    
     for plugin in plugins:
         logger.debug(f"Scanning {connection_string} with plugin {plugin.id} (Will be parsed: {to_parse})")
         to_append = None
