@@ -1,3 +1,5 @@
+[![Python PyInstaller Build Standalone Executable](https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml/badge.svg)](https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml)
+
 # staresc-ng
 
 staresc-ng is based on an internal tool developed by @brn1337 on GitLab. 
