@@ -5,7 +5,7 @@ from lib.output import *
 
 class CSVExporter(Exporter):
 
-    COLUMNS = ["Host IP", "Port", "Scheme","Vulnerable", "Any timeout", "CVSS score", "Vulnerability name", "Description", "Technical details", "Remediation", "CVE","CVSS vector", "Complete log"]
+    COLUMNS = ["Host IP", "Port", "Scheme","Vulnerable", "Any timeout", "CVSS score", "Vulnerability name", "Description", "Technical details", "Remediation", "CVE", "CVSS vector", "Complete log"]
 
     def export(self) -> None:
         MATCHER_TO_FUNC = {
@@ -19,6 +19,7 @@ class CSVExporter(Exporter):
             "Description"  : self.__parse_description,
             "Technical details"  : self.__parse_technical_details,
             "Remediation"  : self.__parse_remediation,
+            "CVE"  : self.__parse_cve,
             "CVSS vector"  : self.__parse_cvss_vector,
             "Complete log"  : self.__parse_complete_log,
         }
@@ -91,6 +92,10 @@ class CSVExporter(Exporter):
     @staticmethod
     def __parse_cvss_vector(output: Output) -> str:
         return getattr(output.plugin, 'cvss_vector')
+
+    @staticmethod
+    def __parse_cve(output: Output) -> str:
+        return getattr(output.plugin, 'CVE')
 
 
     @staticmethod
