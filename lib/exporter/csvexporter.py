@@ -5,8 +5,7 @@ from lib.output import *
 
 class CSVExporter(Exporter):
 
-    COLUMNS = ["Host IP", "Port", "Scheme","Vulnerable", "Any timeout", "CVSS score", "Vulnerability name", "Description", "Technical details", "Remediation", "CVSS vector", "Complete log"]
-    #TODO should we need CVE field?
+    COLUMNS = ["Host IP", "Port", "Scheme","Vulnerable", "Any timeout", "CVSS score", "Vulnerability name", "Description", "Technical details", "Remediation", "CVE","CVSS vector", "Complete log"]
 
     def export(self) -> None:
         MATCHER_TO_FUNC = {
@@ -102,7 +101,6 @@ class CSVExporter(Exporter):
             tech_details += f"stdout: {output.test_results_parsed[i]['stdout']}\n"
             tech_details += f"stderr: {output.test_results_parsed[i]['stderr']}\n"
             tech_details += "\n\n\n"
-        #TODO understand how to pick a valid and minimal poc, TODO check a way to extract info without directly read object field (use some interface method)
         return tech_details
 
 
