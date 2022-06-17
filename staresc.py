@@ -13,6 +13,7 @@ import os
 import json
 import concurrent.futures
 from datetime import datetime
+from tabulate import tabulate
 
 # debug
 import traceback
@@ -20,7 +21,14 @@ import traceback
 from lib.connection import Connection
 from lib.core import Staresc
 from lib.exceptions import *
+from lib.exporter import *
+from lib.core.plugins import Plugin
+import yaml
 
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
 # Configure logger
 logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -37,6 +45,7 @@ def cliparse() -> argparse.Namespace:
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
     parser.add_argument( '-r', '--results', action='store', metavar='R', default='', help='results to be parsed (if already existing)' )
     parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target, default: {Connection.COMMAND_TIMEOUT}s')
+    parser.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
     targets = parser.add_mutually_exclusive_group(required=True)
     targets.add_argument( '-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
@@ -46,8 +55,25 @@ def cliparse() -> argparse.Namespace:
     targets.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
     return parser.parse_args()
 
+def parse_plugins(plugins_dir: str) -> list[Plugin]:
+    plugins = []
 
-def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) -> dict:
+    if not plugins_dir.startswith('/'):
+        plugins_dir = os.path.join(os.getcwd(), plugins_dir)
+
+    for plugin_filename in os.listdir(plugins_dir):
+        if plugin_filename.endswith('.yaml'):
+            plugin_filename_long = os.path.join(plugins_dir, plugin_filename)
+            f = open(plugin_filename_long, "r")
+            plugin_content = yaml.load(f.read(), Loader=Loader)
+            f.close()
+            tmp_plugin = Plugin(plugin_content)
+            plugins.append(tmp_plugin)
+
+    return plugins
+
+def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate: bool, exporters: list[Exporter]) -> dict:
+    vulns_severity = {}
     staresc = Staresc(connection_string)
     
     try:
@@ -56,29 +82,36 @@ def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) 
         logger.error(f"Initialization of {connection_string} raised Exception {type(e)} => {e}")
         return {}
 
-    elevate = staresc.elevate()
+    # For future reference
+    # elevate = staresc.elevate()
+    
+    for plugin in plugins:
+        logger.debug(f"Scanning {connection_string} with plugin {plugin.id} (Will be parsed: {to_parse})")
+        to_append = None
+        try:
+            to_append = staresc.do_check(plugin, to_parse)
 
-    history = []
-    for plugin in os.listdir(plugindir):
-        if plugin.endswith('.yaml'):
-            if not plugindir.startswith('/'):
-                plugindir = os.path.join(os.getcwd(), plugindir)
-
-            pluginfile = os.path.join(plugindir, plugin)
-            logger.debug(f"Scanning {connection_string} with plugin {pluginfile} (Will be parsed: {to_parse})")
-            try:
-                to_happend = staresc.do_check(pluginfile, to_parse)
-            except Exception as e:
-                logger.error(e)
-                to_happend = None
-            if to_happend != None:
-                history.append(to_happend)
-
-    return { 'staresc' : history, 'connection_string' : connection_string, 'elevated' : elevate }
+        except Exception as e:
+            logger.error(e)
+            print(e.__traceback__)
+        if to_append:
+            # Add output to exporters
+            for exp in exporters:
+                exp.add_output(to_append)
+            # Keep tracks of vulns found in this target
+            if to_append.is_vuln_found():
+                logger.info("{:<20s}{:<30s}{:<15s}".format(f"[{Connection.get_hostname(connection_string)}]", f"[{plugin.id}]", f"[{plugin.severity}]"))
+                to_append_severity = plugin.severity
+                if to_append_severity in vulns_severity:
+                    vulns_severity[to_append_severity] += 1
+                else:
+                    vulns_severity[to_append_severity] = 1
+    return vulns_severity
 
 
 def justparse(outputfile: str, plugindir: str) -> dict:
     
+
     f = open(outputfile, 'r')
     to_parse = json.load(f)
     logger.debug(f"Loaded result file: {outputfile}")
@@ -126,6 +159,18 @@ if __name__ == '__main__':
         targets = [ str(args.connection) ]
         logger.debug(f"Loaded connection: {args.connection}")
 
+    if args.timeout:
+        Connection.COMMAND_TIMEOUT = args.timeout
+
+    exporters = []
+    now = datetime.now()
+    default_output_filename = f"staresc__{now.year}-{now.month}-{now.day}-{now.hour}:{now.minute}:{now.second}"
+
+    if args.output_csv:
+        filename = CSVExporter.format_filename(args.output_csv, default_name = default_output_filename)
+        exporters.append(CSVExporter(filename))
+
+
     if not args.config:
         plugins_dir = os.path.dirname(os.path.realpath(__file__))
         plugins_dir = os.path.join(plugins_dir, "plugins/")
@@ -138,27 +183,35 @@ if __name__ == '__main__':
         write(results, outfile)
         logger.info(f"Wrote parsed file to {outfile}")
         exit(0)
-    if args.timeout:
-        Connection.COMMAND_TIMEOUT = args.timeout
+
+    plugins = parse_plugins(plugins_dir)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
         for target in targets:
-            futures.append(executor.submit(scan, target, plugins_dir, (not args.dontparse), args.pubkey))
+            futures.append(executor.submit(scan, target, plugins, (not args.dontparse), args.pubkey, exporters))
             logger.info(f"Started scan on target {target}")
 
         for future in concurrent.futures.as_completed(futures):
             target = targets[futures.index(future)]
             try:
-                dump = future.result()
+                scan_summary = future.result()
                 logger.info(f"Finished scan on target {target}")
+                if len(scan_summary) == 0:
+                    logger.info(f"Scan summary for {Connection.get_hostname(target)}\nNO VULN FOUND")
+                else:
+                    scan_summary_table = []
+                    for sev, freq in scan_summary.items():
+                        scan_summary_table.append([sev, freq])
+                    logger.info(f"Scan summary for {Connection.get_hostname(target)}\n" + tabulate(scan_summary_table, headers=["SEVERITY", "VULN FOUND"], tablefmt="github"))
             except Exception as e:
                 traceback.print_exc()
                 print(f"{target} generated an exception: {e}")
-            else:
-                now = datetime.now()
-                outfile = f"{now.year}-{now.month}-{now.day}-{now.hour}:{now.minute}:{now.second}-{Connection.get_hostname(target)}:{Connection.get_port(target)}.json"
-                write(dump, outfile)
-                logger.info(f"Results written: {outfile}")
+
+    # export results on file
+    for exp in exporters:
+        exp.export()
+        logger.info(f"Report exported in file: {exp.filename}")
+
              
         

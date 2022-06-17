@@ -7,7 +7,9 @@ from functools import lru_cache
 
 from lib.connection import *
 from lib.exceptions import *
-from lib.plugin_parser import Plugin 
+from lib.core.plugins import *
+from lib.output import *
+
 
 # Configure logger
 logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -85,32 +87,14 @@ class Staresc():
         self.osinfo = ' '.join(results)
 
 
-    def do_check(self, pluginfile: str, to_parse: bool = True) -> dict:        
-        # load plugin from directory
-        basedir = os.path.dirname(pluginfile)
-        if basedir not in sys.path:
-            sys.path.append(basedir)
-
-        # load plugin file into object
-        with open(pluginfile, "r") as f: 
-            plugin_content = yaml.load(f.read(), Loader=yaml.Loader)
-            plugin = Plugin(plugin_content)
-
-        # check distro matcher
-        if not re.findall(plugin.get_distribution_matcher(), self.osinfo):
+    def do_check(self, plugin: Plugin, to_parse: bool) -> Output:
+        if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
             return None
 
-        ret_val: dict            = {}
-        # results of the commands
-        ret_val['results']       = []
-        # results parsed by the parsers
-        ret_val['parse_results'] = []
+        plugin_output = Output(target=self.connection, plugin=plugin)
+        # Run all commands and return the output
+        idx = 0                             # index of the text being run
 
-        # assign plugin name/id
-        ret_val['plugin'] = os.path.basename(pluginfile)
-
-        # Run all commands and save the results
-        test_index = 0
         for test in plugin.get_tests():
             cmd = test.get_command()
             # Try to use absolute paths for the command
@@ -119,39 +103,26 @@ class Staresc():
             cmd  = f"{self.__which(bin)} {args}" 
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
+                plugin_output.add_test_result(stdin=stdin, stdout=stdout, stderr=stderr)
+                if not to_parse:
+                    plugin_output.set_parsed(False)
+                    plugin_output.add_test_result_parsed(stdout='', stderr='')
+                else:
+                    positive_test, parsed_result = plugin.get_tests()[idx].parse({
+                        "stdout": stdout or '',
+                        "stderr": stderr or ''
+                    })      # parse test results
 
-            except StarescCommandError as e:
-                logger.warning(e)
-                stdin, stdout, stderr 
-                ret_val['results'].append( { 'stdin'  : cmd, 'stdout' : '', 'stderr' : '' } )
-                ret_val['parsed'] = True
-                ret_val['parse_results'].append((False, {"stdout" : "", "stderr" : "", "timeout" : True}))
-                test_index += 1
-                continue
-
-            # command output to parse
-            test_result =  {                
-                'stdin'  : stdin,
-                'stdout' : stdout,
-                'stderr' : stderr
-            }
-            ret_val['results'].append(test_result)
-
-            if not to_parse:
-                ret_val['parsed'] = False
-                ret_val['parse_results'].append('')
-            else:
-                parsed_result = plugin.get_tests()[test_index].parse({
-                    "stdout": test_result["stdout"],
-                    "stderr": test_result["stderr"]
-                }) 
-                ret_val['parse_results'].append(parsed_result)
-                ret_val['parsed'] = True
-            test_index += 1
-
-        # delete plugin obj
-        del plugin
-        return ret_val
+                    plugin_output.add_test_success(positive_test)
+                    plugin_output.add_test_result_parsed(stdout=parsed_result["stdout"], stderr=parsed_result["stderr"] )
+                    plugin_output.set_parsed(True)
+                    if positive_test:
+                        plugin_output.set_vuln_found(True)
+                        break
+            except CommandTimeoutError as e:
+                plugin_output.add_timeout_result(stdin=cmd)
+            idx += 1
+        return plugin_output
 
 
     def do_offline_parsing(self, pluginfile:str, check_results: dict) -> dict:          #TODO adapt this to plugin objects
