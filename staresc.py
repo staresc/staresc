@@ -22,13 +22,8 @@ from lib.connection import Connection
 from lib.core import Staresc
 from lib.exceptions import *
 from lib.exporter import *
-from lib.core.plugins import Plugin
+from lib.plugin_parser import Plugin
 import yaml
-
-try:
-    from yaml import CLoader as Loader, CDumper as Dumper
-except ImportError:
-    from yaml import Loader, Dumper
 
 # Configure logger
 logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -65,7 +60,7 @@ def parse_plugins(plugins_dir: str) -> list[Plugin]:
         if plugin_filename.endswith('.yaml'):
             plugin_filename_long = os.path.join(plugins_dir, plugin_filename)
             f = open(plugin_filename_long, "r")
-            plugin_content = yaml.load(f.read(), Loader=Loader)
+            plugin_content = yaml.load(f.read(), Loader=yaml.Loader)
             f.close()
             tmp_plugin = Plugin(plugin_content)
             plugins.append(tmp_plugin)

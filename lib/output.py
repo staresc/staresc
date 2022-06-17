@@ -1,5 +1,5 @@
-from lib.core.plugins import *
-from lib.connection import *
+from lib.plugin_parser import Plugin
+from lib.connection import Connection
 
 class Output():
     target: Connection

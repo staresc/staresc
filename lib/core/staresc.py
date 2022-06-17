@@ -6,8 +6,8 @@ import logging
 from functools import lru_cache
 
 from lib.connection import *
-from lib.exceptions import *
-from lib.core.plugins import *
+from lib.exceptions import StarescCommandError, StarescConnectionStringError
+from lib.plugin_parser import *
 from lib.output import *
 
 
@@ -119,7 +119,7 @@ class Staresc():
                     if positive_test:
                         plugin_output.set_vuln_found(True)
                         break
-            except CommandTimeoutError as e:
+            except StarescCommandError as e:
                 plugin_output.add_timeout_result(stdin=cmd)
             idx += 1
         return plugin_output
