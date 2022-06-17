@@ -4,12 +4,12 @@ from lib.connection import *
 class Output():
     target: Connection
     plugin: Plugin
-    test_results: list[dict[str]]        #TODO right type?
-    test_results_parsed: list[dict[str]]        #TODO right type?
+    test_results: list[dict[str, str]]
+    test_results_parsed: list[dict[str, str]]
     test_success: list[bool]
     test_timeout: list[bool]
     parsed: bool
-    vuln_found: bool                            #TODO match_case implemetation
+    vuln_found: bool
 
 
     def __init__(self, target: Connection, plugin: Plugin, test_results: list = None, test_results_parsed: list = None, test_success: list[bool] = None, test_timeout: list[bool] = None, parsed = False, vuln_found: bool = False,):  #TODO how to handle parsed

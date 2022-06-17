@@ -5,10 +5,9 @@ from lib.output import *
 
 class CSVExporter(Exporter):
 
-    COLUMNS = ["Host IP", "Port", "Scheme","Vulnerable", "Any timeout", "CVSS score", "Vulnerability name", "Description", "Technical details", "Remediation", "CVSS vector", "Complete log"]
-    #TODO should we need CVE field?
+    COLUMNS = ["Host IP", "Port", "Scheme","Vulnerable", "Any timeout", "CVSS score", "Vulnerability name", "Description", "Technical details", "Remediation", "CVE", "CVSS vector", "Complete log"]
 
-    def export(self, filename: str = '') -> None:
+    def export(self) -> None:
         MATCHER_TO_FUNC = {
             "Host IP" : self.__parse_host_ip,
             "Port" : self.__parse_port,
@@ -20,6 +19,7 @@ class CSVExporter(Exporter):
             "Description"  : self.__parse_description,
             "Technical details"  : self.__parse_technical_details,
             "Remediation"  : self.__parse_remediation,
+            "CVE"  : self.__parse_cve,
             "CVSS vector"  : self.__parse_cvss_vector,
             "Complete log"  : self.__parse_complete_log,
         }
@@ -35,9 +35,7 @@ class CSVExporter(Exporter):
                     tmp_row.append('-')
             out_rows.append(tmp_row)
 
-        if not filename:
-            filename = self.filename
-        f_out = open(filename, 'w')
+        f_out = open(self.filename, 'w')
         csv_writer = csv.writer(f_out, delimiter=';')
         csv_writer.writerows(out_rows)
         f_out.close()
@@ -95,6 +93,10 @@ class CSVExporter(Exporter):
     def __parse_cvss_vector(output: Output) -> str:
         return getattr(output.plugin, 'cvss_vector')
 
+    @staticmethod
+    def __parse_cve(output: Output) -> str:
+        return getattr(output.plugin, 'CVE')
+
 
     @staticmethod
     def __parse_technical_details(output: Output) -> str:
@@ -104,7 +106,6 @@ class CSVExporter(Exporter):
             tech_details += f"stdout: {output.test_results_parsed[i]['stdout']}\n"
             tech_details += f"stderr: {output.test_results_parsed[i]['stderr']}\n"
             tech_details += "\n\n\n"
-        #TODO understand how to pick a valid and minimal poc, TODO check a way to extract info without directly read object field (use some interface method)
         return tech_details
 
 
