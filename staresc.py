@@ -16,7 +16,7 @@ from datetime import datetime
 from tabulate import tabulate
 
 # debug
-import traceback
+# import traceback
 
 from lib.connection import Connection
 from lib.core import Staresc
@@ -73,8 +73,8 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
     
     try:
         staresc.prepare()
-    except (StarescCommandError, StarescAuthenticationError, Exception) as e:
-        logger.error(f"Initialization of {connection_string} raised Exception {type(e)} => {e}")
+    except Exception as e:
+        logger.error(f"{type(e).__name__}: {e}")
         return {}
 
     # For future reference
@@ -87,8 +87,8 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
             to_append = staresc.do_check(plugin, to_parse)
 
         except Exception as e:
-            logger.error(e)
-            print(e.__traceback__)
+            logger.error(f"{type(e).__name__}: {e}")
+            #print(e.__traceback__)
         if to_append:
             # Add output to exporters
             for exp in exporters:
@@ -200,8 +200,8 @@ if __name__ == '__main__':
                         scan_summary_table.append([sev, freq])
                     logger.info(f"Scan summary for {Connection.get_hostname(target)}\n" + tabulate(scan_summary_table, headers=["SEVERITY", "VULN FOUND"], tablefmt="github"))
             except Exception as e:
-                traceback.print_exc()
-                print(f"{target} generated an exception: {e}")
+                logger.error(f"{type(e).__name__}: {e}")
+                #traceback.print_exc()
 
     # export results on file
     for exp in exporters:

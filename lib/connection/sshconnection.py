@@ -1,11 +1,11 @@
-import socket
 import paramiko
-import os
 from typing import Tuple
-import binascii
+import logging
 
 from lib.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
 from lib.connection import Connection
+
+logger = logging.getLogger(__name__)
 
 class SSHConnection(Connection):
 
@@ -66,7 +66,7 @@ class SSHConnection(Connection):
             msg = f"Couldn't open session when trying to run command: {cmd}"
             raise StarescConnectionError(msg)
 
-        except socket.timeout:
+        except TimeoutError:
             msg = f"command {cmd} timed out"
             raise StarescCommandError(msg)
          

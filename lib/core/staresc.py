@@ -1,19 +1,12 @@
 import os
 import re
 import sys
-import yaml
-import logging
 from functools import lru_cache
 
 from lib.connection import *
 from lib.exceptions import StarescCommandError, StarescConnectionStringError
 from lib.plugin_parser import *
 from lib.output import *
-
-
-# Configure logger
-logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger(__name__)
 
 SUPPORTED_SCHEMAS = [ 'ssh', 'tnt', 'sshss']
 
