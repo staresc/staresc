@@ -8,9 +8,9 @@ I'm @5amu, welcome!
 """
 
 import argparse
-import logging
 import os
 import json
+import yaml
 import concurrent.futures
 from datetime import datetime
 from tabulate import tabulate
@@ -23,12 +23,10 @@ from lib.core import Staresc
 from lib.exceptions import *
 from lib.exporter import *
 from lib.plugin_parser import Plugin
-import yaml
+from lib.log import StarescLogger
 
 # Configure logger
-logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger(__name__)
-
+logger = StarescLogger()
 
 ##################################### CLI #######################################
 
@@ -49,6 +47,7 @@ def cliparse() -> argparse.Namespace:
     connection_help += "privkey, specified as \\\\path\\\\to\\\\privkey"
     targets.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
     return parser.parse_args()
+
 
 def parse_plugins(plugins_dir: str) -> list[Plugin]:
     plugins = []
@@ -95,7 +94,8 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
                 exp.add_output(to_append)
             # Keep tracks of vulns found in this target
             if to_append.is_vuln_found():
-                logger.info("{:<20s}{:<30s}{:<15s}".format(f"[{Connection.get_hostname(connection_string)}]", f"[{plugin.id}]", f"[{plugin.severity}]"))
+                logger.print_if_vuln(to_append)
+                #logger.info("{:<20s}{:<30s}{:<15s}".format(f"[{Connection.get_hostname(connection_string)}]", f"[{plugin.id}]", f"[{plugin.severity}]"))
                 to_append_severity = plugin.severity
                 if to_append_severity in vulns_severity:
                     vulns_severity[to_append_severity] += 1
@@ -140,10 +140,10 @@ if __name__ == '__main__':
     args = cliparse()
 
     if args.verbose == 1:
-        logger.setLevel(logging.DEBUG)
+        logger.setLevelDebug()
         logger.debug("Logger set to debug mode")
     else:
-        logger.setLevel(logging.INFO)
+        logger.setLevelInfo()
         logger.info("Logger set to info mode")
 
     if args.file:
@@ -185,13 +185,13 @@ if __name__ == '__main__':
         futures = []
         for target in targets:
             futures.append(executor.submit(scan, target, plugins, (not args.dontparse), args.pubkey, exporters))
-            logger.info(f"Started scan on target {target}")
+            logger.debug(f"Started scan on target {target}")
 
         for future in concurrent.futures.as_completed(futures):
             target = targets[futures.index(future)]
             try:
                 scan_summary = future.result()
-                logger.info(f"Finished scan on target {target}")
+                logger.debug(f"Finished scan on target {target}")
                 if len(scan_summary) == 0:
                     logger.info(f"Scan summary for {Connection.get_hostname(target)}\nNO VULN FOUND")
                 else:
