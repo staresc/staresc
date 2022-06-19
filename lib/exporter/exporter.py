@@ -4,7 +4,7 @@ from lib.output import *
 class Exporter():
 
     filename: str
-    runs_results: Queue[Output]
+    runs_results: Queue[Output] = Queue()
 
     def __init__(self, filename: str = ''):
         self.runs_results = Queue()

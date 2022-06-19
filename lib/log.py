@@ -101,8 +101,11 @@ class StarescLogger:
         if not o.is_vuln_found():
             return
 
+        host = o.target.get_hostname(o.target.connection)
+        port = o.target.get_port(o.target.connection)
+
         e = {
-            "target"   : o.target.get_hostname(o.target.connection),
+            "target"   : f"{host}:{port}",
             "severity" : o.plugin.severity,
             "plugin"   : o.plugin.name,
             "c"        : SEVERITY2COLOR.get(o.plugin.severity.lower(), ""),

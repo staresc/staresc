@@ -94,12 +94,12 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
             for exp in exporters:
                 exp.add_output(to_append)
             # Keep tracks of vulns found in this target
-            if to_append.is_vuln_found():
-                to_append_severity = plugin.severity
-                if to_append_severity in vulns_severity:
-                    vulns_severity[to_append_severity] += 1
-                else:
-                    vulns_severity[to_append_severity] = 1
+            # if to_append.is_vuln_found():
+            #    to_append_severity = plugin.severity
+            #    if to_append_severity in vulns_severity:
+            #        vulns_severity[to_append_severity] += 1
+            #    else:
+            #        vulns_severity[to_append_severity] = 1
     return vulns_severity
 
 
@@ -192,13 +192,6 @@ if __name__ == '__main__':
             try:
                 scan_summary = future.result()
                 logger.debug(f"Finished scan on target {target}")
-                if len(scan_summary) == 0:
-                    logger.info(f"Scan summary for {Connection.get_hostname(target)}\nNO VULN FOUND")
-                else:
-                    scan_summary_table = []
-                    for sev, freq in scan_summary.items():
-                        scan_summary_table.append([sev, freq])
-                    logger.info(f"Scan summary for {Connection.get_hostname(target)}\n" + tabulate(scan_summary_table, headers=["SEVERITY", "VULN FOUND"], tablefmt="github"))
             except Exception as e:
                 logger.error(f"{type(e).__name__}: {e}")
                 #traceback.print_exc()
@@ -206,7 +199,7 @@ if __name__ == '__main__':
     # export results on file
     for exp in exporters:
         exp.export()
-        logger.info(f"Report exported in file: {exp.filename}")
+        #logger.info(f"Report exported in file: {exp.filename}")
 
              
         
