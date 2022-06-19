@@ -80,7 +80,7 @@ class Staresc():
         self.osinfo = ' '.join(results)
 
 
-    def do_check(self, plugin: Plugin, to_parse: bool) -> Output:
+    def do_check(self, plugin: Plugin) -> Output:
         if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
             return None
 
@@ -97,46 +97,20 @@ class Staresc():
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
                 plugin_output.add_test_result(stdin=stdin, stdout=stdout, stderr=stderr)
-                if not to_parse:
-                    plugin_output.set_parsed(False)
-                    plugin_output.add_test_result_parsed(stdout='', stderr='')
-                else:
-                    positive_test, parsed_result = plugin.get_tests()[idx].parse({
-                        "stdout": stdout or '',
-                        "stderr": stderr or ''
-                    })      # parse test results
+                positive_test, parsed_result = plugin.get_tests()[idx].parse({
+                    "stdout": stdout or '',
+                    "stderr": stderr or ''
+                })      # parse test results
 
-                    plugin_output.add_test_success(positive_test)
-                    plugin_output.add_test_result_parsed(stdout=parsed_result["stdout"], stderr=parsed_result["stderr"] )
-                    plugin_output.set_parsed(True)
-                    if positive_test:
-                        plugin_output.set_vuln_found(True)
-                        break
+                plugin_output.add_test_success(positive_test)
+                plugin_output.add_test_result_parsed(stdout=parsed_result["stdout"], stderr=parsed_result["stderr"] )
+                plugin_output.set_parsed(True)
+                if positive_test:
+                    plugin_output.set_vuln_found(True)
+                    break
+
             except StarescCommandError as e:
                 plugin_output.add_timeout_result(stdin=cmd)
             idx += 1
         return plugin_output
-
-
-    def do_offline_parsing(self, pluginfile:str, check_results: dict) -> dict:          #TODO adapt this to plugin objects
-        basedir = os.path.dirname(pluginfile)
-        if basedir not in sys.path:
-            sys.path.append(basedir)
-
-        # Load plugin as module
-        plugin_basename = os.path.basename(pluginfile)
-        plugin_module = os.path.splitext(plugin_basename)[0]
-        plugin = __import__(plugin_module)
-
-        if not check_results['results']:
-            return { 'parse_results' : "Unable to find results, likely because the checks didn't match the OS" }
-
-        output_list = []
-        for output in check_results['results']:
-            output_list.append(output['stdout'])
-        check_results['parse_results'] = plugin.parse(output_list)
-        check_results['parsed'] = True
-
-        del plugin
-        return check_results
 
