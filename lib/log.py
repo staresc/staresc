@@ -62,10 +62,16 @@ class StarescLogger:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         
-        # Initialize all levels in root logger
-        for lev, name in self.LEVEL_TO_STRING.items():
-            self.__add_logging_level(name, lev)
-        
+        try:
+            # Initialize all levels in root logger
+            for lev, name in self.LEVEL_TO_STRING.items():
+                self.__add_logging_level(name, lev)
+
+        except AttributeError:
+            # If attribute error: logger already configured
+            # so we can skip this step
+            return
+            
         hdlr = logging.StreamHandler()
         hdlr.setFormatter(self.StarescLoggingFormatter())
         self.logger.addHandler(hdlr)
@@ -99,7 +105,7 @@ class StarescLogger:
             "target"   : o.target.get_hostname(o.target.connection),
             "severity" : o.plugin.severity,
             "plugin"   : o.plugin.name,
-            "c"        : SEVERITY2COLOR.get(o.plugin.severity, ""),
+            "c"        : SEVERITY2COLOR.get(o.plugin.severity.lower(), ""),
             "r"        : "\033[0m",
         }
 

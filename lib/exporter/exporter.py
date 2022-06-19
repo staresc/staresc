@@ -11,7 +11,7 @@ class Exporter():
         self.filename = filename
 
 
-    def add_output(self, output) -> None:
+    def add_output(self, output: Output) -> None:
         self.runs_results.put(output)
 
 

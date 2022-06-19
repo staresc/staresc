@@ -22,6 +22,7 @@ from lib.connection import Connection
 from lib.core import Staresc
 from lib.exceptions import *
 from lib.exporter import *
+from lib.exporter.stdoutexporter import StdoutExporter
 from lib.plugin_parser import Plugin
 from lib.log import StarescLogger
 
@@ -94,8 +95,6 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
                 exp.add_output(to_append)
             # Keep tracks of vulns found in this target
             if to_append.is_vuln_found():
-                logger.print_if_vuln(to_append)
-                #logger.info("{:<20s}{:<30s}{:<15s}".format(f"[{Connection.get_hostname(connection_string)}]", f"[{plugin.id}]", f"[{plugin.severity}]"))
                 to_append_severity = plugin.severity
                 if to_append_severity in vulns_severity:
                     vulns_severity[to_append_severity] += 1
@@ -165,6 +164,7 @@ if __name__ == '__main__':
         filename = CSVExporter.format_filename(args.output_csv, default_name = default_output_filename)
         exporters.append(CSVExporter(filename))
 
+    exporters.append(StdoutExporter())
 
     if not args.config:
         plugins_dir = os.path.dirname(os.path.realpath(__file__))
