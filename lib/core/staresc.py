@@ -80,7 +80,7 @@ class Staresc():
         self.osinfo = ' '.join(results)
 
 
-    def do_check(self, plugin: Plugin, to_parse: bool) -> Output:
+    def do_check(self, plugin: Plugin) -> Output:
         if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
             return None
 
@@ -97,21 +97,18 @@ class Staresc():
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
                 plugin_output.add_test_result(stdin=stdin, stdout=stdout, stderr=stderr)
-                if not to_parse:
-                    plugin_output.set_parsed(False)
-                    plugin_output.add_test_result_parsed(stdout='', stderr='')
-                else:
-                    positive_test, parsed_result = plugin.get_tests()[idx].parse({
-                        "stdout": stdout or '',
-                        "stderr": stderr or ''
-                    })      # parse test results
+                positive_test, parsed_result = plugin.get_tests()[idx].parse({
+                    "stdout": stdout or '',
+                    "stderr": stderr or ''
+                })      # parse test results
 
-                    plugin_output.add_test_success(positive_test)
-                    plugin_output.add_test_result_parsed(stdout=parsed_result["stdout"], stderr=parsed_result["stderr"] )
-                    plugin_output.set_parsed(True)
-                    if positive_test:
-                        plugin_output.set_vuln_found(True)
-                        break
+                plugin_output.add_test_success(positive_test)
+                plugin_output.add_test_result_parsed(stdout=parsed_result["stdout"], stderr=parsed_result["stderr"] )
+                plugin_output.set_parsed(True)
+                if positive_test:
+                    plugin_output.set_vuln_found(True)
+                    break
+
             except StarescCommandError as e:
                 plugin_output.add_timeout_result(stdin=cmd)
             idx += 1

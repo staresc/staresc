@@ -33,10 +33,8 @@ logger = StarescLogger()
 def cliparse() -> argparse.Namespace:
     parser = argparse.ArgumentParser( prog='staresc', description='Make SSH/TELNET PTs great again!', epilog=' ', formatter_class=argparse.RawTextHelpFormatter )
     parser.add_argument( '-v', '--verbose', action='count', default=0, help='increase output verbosity (-vv for debug)' )
-    parser.add_argument( '-d', '--dontparse', action='store_true', default=False, help='do not parse as soon as the commands are executed' )
     parser.add_argument( '-P', '--pubkey', action='store_true', default=False, help='specify if a pubkey is provided' )
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
-    parser.add_argument( '-r', '--results', action='store', metavar='R', default='', help='results to be parsed (if already existing)' )
     parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target, default: {Connection.COMMAND_TIMEOUT}s')
     parser.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
     targets = parser.add_mutually_exclusive_group(required=True)
@@ -66,7 +64,7 @@ def parse_plugins(plugins_dir: str) -> list[Plugin]:
 
     return plugins
 
-def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate: bool, exporters: list[Exporter]) -> dict:
+def scan(connection_string: str, plugins: list[Plugin], elevate: bool, exporters: list[Exporter]) -> dict:
     vulns_severity = {}
     staresc = Staresc(connection_string)
     
@@ -80,10 +78,10 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
     # elevate = staresc.elevate()
     
     for plugin in plugins:
-        logger.debug(f"Scanning {connection_string} with plugin {plugin.id} (Will be parsed: {to_parse})")
+        logger.debug(f"Scanning {connection_string} with plugin {plugin.id}")
         to_append = None
         try:
-            to_append = staresc.do_check(plugin, to_parse)
+            to_append = staresc.do_check(plugin)
 
         except Exception as e:
             logger.error(f"{type(e).__name__}: {e}")
@@ -92,40 +90,7 @@ def scan(connection_string: str, plugins: list[Plugin], to_parse: bool, elevate:
             # Add output to exporters
             for exp in exporters:
                 exp.add_output(to_append)
-            # Keep tracks of vulns found in this target
-            # if to_append.is_vuln_found():
-            #    to_append_severity = plugin.severity
-            #    if to_append_severity in vulns_severity:
-            #        vulns_severity[to_append_severity] += 1
-            #    else:
-            #        vulns_severity[to_append_severity] = 1
     return vulns_severity
-
-
-def justparse(outputfile: str, plugindir: str) -> dict:
-    
-
-    f = open(outputfile, 'r')
-    to_parse = json.load(f)
-    logger.debug(f"Loaded result file: {outputfile}")
-
-    conn = to_parse['connection_string']
-    hist = to_parse['staresc']
-
-    staresc = Staresc(conn)
-
-    new_history = []
-    for result in hist:
-        for plugin in os.listdir(plugindir):
-            if plugin.endswith('.py') and result['plugin'] == plugin and not plugindir.startswith('/'):
-                plugindir = os.path.join(os.getcwd(), plugindir)
-                    
-            pluginfile = os.path.join(plugindir, plugin)
-            logger.debug(f"Analyzing {result} with plugin {pluginfile}")
-            parsed = staresc.do_offline_parsing(pluginfile, result)
-            new_history.append(parsed)
-        
-    return { 'staresc' : new_history, 'connection_string' : conn, 'elevated' : to_parse['elevated']}
 
 
 def write(results: dict, outfile: str) -> None:
@@ -170,13 +135,6 @@ if __name__ == '__main__':
     else:
         plugins_dir = args.config
 
-    if args.results:
-        outfile = f"{args.results}-parsed.json"
-        results = justparse(args.results, plugins_dir)
-        write(results, outfile)
-        logger.info(f"Wrote parsed file to {outfile}")
-        exit(0)
-
     plugins = parse_plugins(plugins_dir)
 
     # TODO: banner dor staresc
@@ -184,7 +142,7 @@ if __name__ == '__main__':
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
         for target in targets:
-            futures.append(executor.submit(scan, target, plugins, (not args.dontparse), args.pubkey, exporters))
+            futures.append(executor.submit(scan, target, plugins, args.pubkey, exporters))
             logger.debug(f"Started scan on target {target}")
 
         for future in concurrent.futures.as_completed(futures):
