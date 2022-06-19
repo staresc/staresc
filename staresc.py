@@ -13,7 +13,6 @@ import json
 import yaml
 import concurrent.futures
 from datetime import datetime
-from tabulate import tabulate
 
 # debug
 # import traceback
@@ -179,6 +178,8 @@ if __name__ == '__main__':
         exit(0)
 
     plugins = parse_plugins(plugins_dir)
+
+    # TODO: banner dor staresc
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
