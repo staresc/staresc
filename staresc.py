@@ -39,8 +39,7 @@ def cliparse() -> argparse.Namespace:
     return parser.parse_args()
 
 
-if __name__ == '__main__':
-
+def main():
     # Configure logger
     logger = StarescLogger()
     
@@ -80,3 +79,7 @@ if __name__ == '__main__':
     
     plugins = sr.parse_plugins(plugins_dir)
     sr.run(targets, plugins, args.pubkey, exporters)
+
+
+if __name__ == '__main__':
+    main()
