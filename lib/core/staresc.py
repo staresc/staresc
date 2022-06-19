@@ -114,26 +114,3 @@ class Staresc():
             idx += 1
         return plugin_output
 
-
-    def do_offline_parsing(self, pluginfile:str, check_results: dict) -> dict:          #TODO adapt this to plugin objects
-        basedir = os.path.dirname(pluginfile)
-        if basedir not in sys.path:
-            sys.path.append(basedir)
-
-        # Load plugin as module
-        plugin_basename = os.path.basename(pluginfile)
-        plugin_module = os.path.splitext(plugin_basename)[0]
-        plugin = __import__(plugin_module)
-
-        if not check_results['results']:
-            return { 'parse_results' : "Unable to find results, likely because the checks didn't match the OS" }
-
-        output_list = []
-        for output in check_results['results']:
-            output_list.append(output['stdout'])
-        check_results['parse_results'] = plugin.parse(output_list)
-        check_results['parsed'] = True
-
-        del plugin
-        return check_results
-
