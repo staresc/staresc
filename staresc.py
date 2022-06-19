@@ -10,9 +10,7 @@ I'm @5amu, welcome!
 import argparse
 import os
 
-from lib.connection import Connection
-from lib.exceptions import *
-from lib.exporter import *
+from lib.exporter import CSVExporter, StdoutExporter
 from lib.log import StarescLogger
 from lib.runner import StarescRunner
 
@@ -23,7 +21,7 @@ def cliparse() -> argparse.Namespace:
     parser.add_argument( '-v', '--verbose', action='count', default=0, help='increase output verbosity (-vv for debug)' )
     parser.add_argument( '-P', '--pubkey', action='store_true', default=False, help='specify if a pubkey is provided' )
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
-    parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target, default: {Connection.COMMAND_TIMEOUT}s')
+    parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target')
     
     outputs = parser.add_mutually_exclusive_group(required=False)
     outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
