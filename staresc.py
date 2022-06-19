@@ -143,7 +143,6 @@ if __name__ == '__main__':
         logger.debug("Logger set to debug mode")
     else:
         logger.setLevelInfo()
-        logger.info("Logger set to info mode")
 
     if args.file:
         f = open(args.file, 'r')
