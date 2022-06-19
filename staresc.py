@@ -9,24 +9,12 @@ I'm @5amu, welcome!
 
 import argparse
 import os
-import json
-import yaml
-import concurrent.futures
-from datetime import datetime
-
-# debug
-# import traceback
 
 from lib.connection import Connection
-from lib.core import Staresc
 from lib.exceptions import *
 from lib.exporter import *
-from lib.exporter.stdoutexporter import StdoutExporter
-from lib.plugin_parser import Plugin
 from lib.log import StarescLogger
-
-# Configure logger
-logger = StarescLogger()
+from lib.runner import StarescRunner
 
 ##################################### CLI #######################################
 
@@ -36,7 +24,11 @@ def cliparse() -> argparse.Namespace:
     parser.add_argument( '-P', '--pubkey', action='store_true', default=False, help='specify if a pubkey is provided' )
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
     parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target, default: {Connection.COMMAND_TIMEOUT}s')
-    parser.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
+    
+    outputs = parser.add_mutually_exclusive_group(required=False)
+    outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
+    outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
+    
     targets = parser.add_mutually_exclusive_group(required=True)
     targets.add_argument( '-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
@@ -47,58 +39,10 @@ def cliparse() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def parse_plugins(plugins_dir: str) -> list[Plugin]:
-    plugins = []
-
-    if not plugins_dir.startswith('/'):
-        plugins_dir = os.path.join(os.getcwd(), plugins_dir)
-
-    for plugin_filename in os.listdir(plugins_dir):
-        if plugin_filename.endswith('.yaml'):
-            plugin_filename_long = os.path.join(plugins_dir, plugin_filename)
-            f = open(plugin_filename_long, "r")
-            plugin_content = yaml.load(f.read(), Loader=yaml.Loader)
-            f.close()
-            tmp_plugin = Plugin(plugin_content)
-            plugins.append(tmp_plugin)
-
-    return plugins
-
-def scan(connection_string: str, plugins: list[Plugin], elevate: bool, exporters: list[Exporter]) -> dict:
-    vulns_severity = {}
-    staresc = Staresc(connection_string)
-    
-    try:
-        staresc.prepare()
-    except Exception as e:
-        logger.error(f"{type(e).__name__}: {e}")
-        return {}
-
-    # For future reference
-    # elevate = staresc.elevate()
-    
-    for plugin in plugins:
-        logger.debug(f"Scanning {connection_string} with plugin {plugin.id}")
-        to_append = None
-        try:
-            to_append = staresc.do_check(plugin)
-
-        except Exception as e:
-            logger.error(f"{type(e).__name__}: {e}")
-            #print(e.__traceback__)
-        if to_append:
-            # Add output to exporters
-            for exp in exporters:
-                exp.add_output(to_append)
-    return vulns_severity
-
-
-def write(results: dict, outfile: str) -> None:
-    with open(outfile, 'x') as f:
-        json.dump(results, f)
-
-
 if __name__ == '__main__':
+
+    # Configure logger
+    logger = StarescLogger()
     
     args = cliparse()
 
@@ -116,48 +60,23 @@ if __name__ == '__main__':
         targets = [ str(args.connection) ]
         logger.debug(f"Loaded connection: {args.connection}")
 
-    if args.timeout:
-        Connection.COMMAND_TIMEOUT = args.timeout
-
-    exporters = []
-    now = datetime.now()
-    default_output_filename = f"staresc__{now.year}-{now.month}-{now.day}-{now.hour}:{now.minute}:{now.second}"
-
-    if args.output_csv:
-        filename = CSVExporter.format_filename(args.output_csv, default_name = default_output_filename)
-        exporters.append(CSVExporter(filename))
-
-    exporters.append(StdoutExporter())
-
     if not args.config:
         plugins_dir = os.path.dirname(os.path.realpath(__file__))
         plugins_dir = os.path.join(plugins_dir, "plugins/")
     else:
         plugins_dir = args.config
 
-    plugins = parse_plugins(plugins_dir)
+    exporters = []
+    exporters.append(StdoutExporter())
+
+    if args.output_all:
+        exporters.append(CSVExporter(args.output_all))
+
+    if args.output_csv:
+        exporters.append(CSVExporter(args.output_csv))
 
     # TODO: banner dor staresc
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        futures = []
-        for target in targets:
-            futures.append(executor.submit(scan, target, plugins, args.pubkey, exporters))
-            logger.debug(f"Started scan on target {target}")
-
-        for future in concurrent.futures.as_completed(futures):
-            target = targets[futures.index(future)]
-            try:
-                scan_summary = future.result()
-                logger.debug(f"Finished scan on target {target}")
-            except Exception as e:
-                logger.error(f"{type(e).__name__}: {e}")
-                #traceback.print_exc()
-
-    # export results on file
-    for exp in exporters:
-        exp.export()
-        #logger.info(f"Report exported in file: {exp.filename}")
-
-             
-        
+    sr = StarescRunner(logger)
+    
+    plugins = sr.parse_plugins(plugins_dir)
+    sr.run(targets, plugins, args.pubkey, exporters)
