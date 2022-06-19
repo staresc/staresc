@@ -37,6 +37,19 @@ def cliparse() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def banner() -> str:
+    b = " _______ _________ _______  _______  _______  _______  _______ \n"
+    b += "(  ____ \\\\__   __/(  ___  )(  ____ )(  ____ \(  ____ \(  ____ \\\n"
+    b += "| (    \/   ) (   | (   ) || (    )|| (    \/| (    \/| (    \/\n"
+    b += "| (_____    | |   | (___) || (____)|| (__    | (_____ | |      \n"
+    b += "(_____  )   | |   |  ___  ||     __)|  __)   (_____  )| |      \n"
+    b += "      ) |   | |   | (   ) || (\ (   | (            ) || |      \n"
+    b += "/\\____) |   | |   | )   ( || ) \ \__| (____/\\/\\____) || (____/\\\n"
+    b += "\_______)   )_(   |/     \||/   \__/(_______/\_______)(_______/\n"
+    b += "                                             - by 5amu & cekout\n"
+    return b
+
+
 def main():
     # Configure logger
     logger = StarescLogger()
@@ -72,7 +85,7 @@ def main():
     if args.output_csv:
         exporters.append(CSVExporter(args.output_csv))
 
-    # TODO: banner dor staresc
+    print("\033[1m\033[1;31m" + banner() + "\033[0m")
     sr = StarescRunner(logger)
     
     plugins = sr.parse_plugins(plugins_dir)
