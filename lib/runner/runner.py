@@ -17,7 +17,7 @@ class StarescRunner:
         self.logger  = logger
 
 
-    def scan(self, connection_string: str, plugins: list[Plugin], exporters: list[Exporter]) -> None:
+    def scan(self, connection_string: str, plugins: list[Plugin]) -> None:
         
         try:
             staresc = Staresc(connection_string)
@@ -40,23 +40,21 @@ class StarescRunner:
                 self.logger.error(f"{type(e).__name__}: {e}")
 
             if to_append:
-                for exp in exporters:
-                    exp.add_output(to_append)
+                Exporter.import_output(to_append)
 
 
-    def run(self, targets: list[str], plugins: list[Plugin], pubkey: bool, exporters: list[Exporter]):
+    def run(self, targets: list[str], plugins: list[Plugin], pubkey: bool):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
-                futures.append(executor.submit(StarescRunner.scan, self, target, plugins, exporters))
+                futures.append(executor.submit(StarescRunner.scan, self, target, plugins))
                 self.logger.debug(f"Started scan on target {target}")
 
             for future in concurrent.futures.as_completed(futures):
                 target = targets[futures.index(future)]
                 self.logger.debug(f"Finished scan on target {target}")
 
-        for exp in exporters:
-            exp.export()
+        Exporter.export()
 
 
     @staticmethod

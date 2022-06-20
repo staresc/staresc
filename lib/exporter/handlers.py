@@ -1,0 +1,118 @@
+import csv
+from tabulate import tabulate
+
+from lib.log import StarescLogger
+from lib.output import Output
+from lib.connection import Connection
+
+class StarescHandler:
+
+    out: str
+
+    def __init__(self, out: str) -> None:
+        self.out = out
+
+    def import_handler(self, o: Output):
+        pass
+
+    def export_handler(self, outputs: list[Output], outfile: str):
+        pass
+
+
+class StarescCSVHandler(StarescHandler):
+
+    def import_handler(self, o: Output):
+        pass
+
+    def export_handler(self, outputs: list[Output], outfile: str):
+        
+        def technical_details(o: Output):
+            tech_details = ""
+            for i in range(len(o.test_results)):
+                tech_details += f"cmd: {o.test_results[i]['stdin']}\n"
+                tech_details += f"stdout: {o.test_results_parsed[i]['stdout']}\n"
+                tech_details += f"stderr: {o.test_results_parsed[i]['stderr']}\n"
+                tech_details += "\n\n\n"
+            return tech_details
+
+        def complete_log(o: Output):
+            ret = []
+            for test_res in o.test_results:
+                ret.append({
+                    "stdin": test_res["stdin"],
+                    "stdout": test_res["stdout"],
+                    "stderr": test_res["stderr"],
+                })
+            return str(ret)
+
+        COLUMNS_TO_FUNC = {
+            "Host IP"            : lambda x: Connection.get_hostname(x.target.connection),
+            "Port"               : lambda x: Connection.get_port(x.target.connection),
+            "Scheme"             : lambda x: Connection.get_scheme(x.target.connection),
+            "Vulnerable"         : lambda x : x.is_vuln_found(),
+            "Any timeout"        : lambda x : any(x.get_timeouts()),
+            "CVSS score"         : lambda x : getattr(x.plugin, 'cvss', 0.0),
+            "Vulnerability name" : lambda x : getattr(x.plugin, 'name'),
+            "Description"        : lambda x : getattr(x.plugin, 'description'),
+            "Technical details"  : technical_details,
+            "Remediation"        : lambda x : getattr(x.plugin, 'remediation', ''),
+            "CVE"                : lambda x : getattr(x.plugin, 'CVE', ''),
+            "CVSS vector"        : lambda x : getattr(x.plugin, 'cvss_vector', ''),
+            "Complete log"       : complete_log,
+        }
+        out_rows = [COLUMNS_TO_FUNC.keys()]
+        
+        # it works only in non multithread environment
+        for output in outputs:
+            tmp_row = []
+            for col in COLUMNS_TO_FUNC.keys():
+                tmp_row.append(COLUMNS_TO_FUNC[col](output))
+            out_rows.append(tmp_row)
+
+        with open(outfile, 'w') as f:
+            csv_writer = csv.writer(f, delimiter=';')
+            csv_writer.writerows(out_rows)
+
+
+class StarescStdoutHandler(StarescHandler):
+
+    logger: StarescLogger = StarescLogger()
+    scan_summary: dict
+
+    def __init__(self, out: str) -> None:
+        self.scan_summary = {}
+        super().__init__(out)
+
+    def import_handler(self, o: Output):
+        self.logger.print_if_vuln(o)
+
+        if o.is_vuln_found():
+            host = o.target.get_hostname(o.target.connection)
+            port = o.target.get_port(o.target.connection)
+
+        if f"{host}:{port}" not in self.scan_summary:
+            self.scan_summary[f"{host}:{port}"] = {}
+
+        if o.plugin.severity in self.scan_summary[f"{host}:{port}"]:
+            self.scan_summary[f"{host}:{port}"][o.plugin.severity] += 1
+
+        else:
+            self.scan_summary[f"{host}:{port}"][o.plugin.severity] = 1
+
+
+    def export_handler(self, outputs: list[Output], outfile: str):
+        headers = ["HOST", "SEVERITY", "VULN FOUND"]
+        fmt = "github"
+
+        tab = []
+        for host in self.scan_summary.keys():
+            first = True
+            for sev, count in self.scan_summary[host].items():
+                if first:
+                    tab.append([host, sev, count])
+                    first = False
+                else:
+                    tab.append(["", sev, count])
+            tab.append(["-", "-", "-"])
+
+        print(tabulate(tab, headers=headers, tablefmt=fmt))
