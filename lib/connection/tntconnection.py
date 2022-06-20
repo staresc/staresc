@@ -54,7 +54,7 @@ class TNTConnection(Connection):
         try:
             delimiter_canary = binascii.b2a_hex(os.urandom(15))
             self.client.write(cmd.encode('ascii') + b"; echo " + delimiter_canary + b'\n')
-            stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=300)
+            stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=timeout)
 
         except (OSError,EOFError):
             msg = f"connection dropped while executing command: {cmd}"
