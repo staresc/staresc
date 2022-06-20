@@ -1,6 +1,7 @@
 import telnetlib
 from typing import Tuple
 import os,binascii
+import re
 
 from lib.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
 from lib.connection import Connection
@@ -50,11 +51,10 @@ class TNTConnection(Connection):
 
 
     def run(self, cmd: str, timeout: float = Connection.COMMAND_TIMEOUT) -> Tuple[str, str, str]:
-
         try:
             delimiter_canary = binascii.b2a_hex(os.urandom(15))
             self.client.write(cmd.encode('ascii') + b"; echo " + delimiter_canary + b'\n')
-            stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=timeout)
+            stdout = self.client.read_until(b'\r\n' + delimiter_canary + b'\r\n', timeout=300)
 
         except (OSError,EOFError):
             msg = f"connection dropped while executing command: {cmd}"
@@ -66,6 +66,11 @@ class TNTConnection(Connection):
             raise StarescCommandError(msg)
 
         # extract from stdout the output of cmd
-        stdout = stdout.split(delimiter_canary + b'\r\n')[-2]
-        stdout = stdout.rstrip(b'\r\n').decode('ascii')
+        stdout = re.split(delimiter_canary.decode('ascii') + '\s*\r\n', stdout.decode('ascii'))[-2]
+        stdout = stdout.rstrip('\r\n')
         return cmd, stdout, None
+
+    @staticmethod
+    def escape_ansi(cls, line):
+        ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
+        return ansi_escape.sub('', line)
