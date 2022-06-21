@@ -1,6 +1,7 @@
 import csv
 
 import xlsxwriter
+import json
 from tabulate import tabulate
 
 from lib.log import StarescLogger
@@ -179,3 +180,48 @@ class StarescXLSXHandler(StarescHandler):
                 worksheet.write(row, col, out_rows[row][col])
 
         workbook.close()
+
+
+class StarescJSONHandler(StarescHandler):
+
+    def import_handler(self, o: Output):
+        pass
+
+    def export_handler(self, outputs: list[Output], outfile: str):
+
+        def complete_log(o: Output):
+            ret = []
+            for i in range(len(o.test_results)):
+                ret.append({
+                    "stdin": o.test_results[i]['stdin'],
+                    "stdout": o.test_results[i]['stdout'],
+                    "stderr": o.test_results[i]['stderr'] or ""
+                })
+            return ret
+
+        COLUMNS_TO_FUNC = {
+            "Host IP": lambda x: Connection.get_hostname(x.target.connection),
+            "Port": lambda x: Connection.get_port(x.target.connection),
+            "Scheme": lambda x: Connection.get_scheme(x.target.connection),
+            "Vulnerable": lambda x: x.is_vuln_found(),
+            "Any timeout": lambda x: any(x.get_timeouts()),
+            "CVSS score": lambda x: getattr(x.plugin, 'cvss', 0.0),
+            "Vulnerability name": lambda x: getattr(x.plugin, 'name'),
+            "Description": lambda x: getattr(x.plugin, 'description'),
+            "Remediation": lambda x: getattr(x.plugin, 'remediation', ''),
+            "CVE": lambda x: getattr(x.plugin, 'CVE', ''),
+            "CVSS vector": lambda x: getattr(x.plugin, 'cvss_vector', ''),
+            "Complete log": complete_log,
+        }
+        out_dict = []
+
+        # it works only in non multithread environment
+        for output in outputs:
+            tmp_row = {}
+            for column_name, value_func in COLUMNS_TO_FUNC.items():
+                tmp_row[column_name] = value_func(output)
+            out_dict.append(tmp_row)
+
+        with open(outfile, 'w') as f:
+            json.dump(out_dict, f)
+            f.close()
