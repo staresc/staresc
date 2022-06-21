@@ -10,7 +10,7 @@ I'm @5amu, welcome!
 import argparse
 import os
 
-from lib.exporter import Exporter, StarescCSVHandler, StarescStdoutHandler
+from lib.exporter import Exporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler
 from lib.log import StarescLogger
 from lib.runner import StarescRunner
 
@@ -25,6 +25,8 @@ def cliparse() -> argparse.Namespace:
     
     outputs = parser.add_mutually_exclusive_group(required=False)
     outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
+    outputs.add_argument('-oxlsx', '--output-xlsx', metavar='filename', action='store', default='',
+                         help='export results on a xlsx (MS Excel) file')
     outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
     
     targets = parser.add_mutually_exclusive_group(required=True)
@@ -80,9 +82,13 @@ def main():
 
     if args.output_all:
         Exporter.register_handler(StarescCSVHandler(args.output_all))
-        
+        Exporter.register_handler(StarescXLSXHandler(args.output_xlsx))
+
     if args.output_csv:
         Exporter.register_handler(StarescCSVHandler(args.output_csv))
+
+    if args.output_xlsx:
+        Exporter.register_handler(StarescXLSXHandler(args.output_xlsx))
 
     print("\033[1m\033[1;31m" + banner() + "\033[0m")
     sr = StarescRunner(logger)

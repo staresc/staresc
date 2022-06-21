@@ -1,4 +1,6 @@
 import csv
+
+import xlsxwriter
 from tabulate import tabulate
 
 from lib.log import StarescLogger
@@ -90,14 +92,13 @@ class StarescStdoutHandler(StarescHandler):
             host = o.target.get_hostname(o.target.connection)
             port = o.target.get_port(o.target.connection)
 
-        if f"{host}:{port}" not in self.scan_summary:
-            self.scan_summary[f"{host}:{port}"] = {}
+            if f"{host}:{port}" not in self.scan_summary:
+                self.scan_summary[f"{host}:{port}"] = {}
 
-        if o.plugin.severity in self.scan_summary[f"{host}:{port}"]:
-            self.scan_summary[f"{host}:{port}"][o.plugin.severity] += 1
-
-        else:
-            self.scan_summary[f"{host}:{port}"][o.plugin.severity] = 1
+            if o.plugin.severity in self.scan_summary[f"{host}:{port}"]:
+                self.scan_summary[f"{host}:{port}"][o.plugin.severity] += 1
+            else:
+                self.scan_summary[f"{host}:{port}"][o.plugin.severity] = 1
 
 
     def export_handler(self, outputs: list[Output], outfile: str):
@@ -116,3 +117,65 @@ class StarescStdoutHandler(StarescHandler):
             tab.append(["-", "-", "-"])
 
         print(tabulate(tab, headers=headers, tablefmt=fmt))
+
+
+class StarescXLSXHandler(StarescHandler):
+
+    def import_handler(self, o: Output):
+        pass
+
+    def export_handler(self, outputs: list[Output], outfile: str):
+
+        def technical_details(o: Output):
+            tech_details = ""
+            for i in range(len(o.test_results)):
+                tech_details += f"cmd: {o.test_results[i]['stdin']}\n"
+                tech_details += f"stdout: {o.test_results_parsed[i]['stdout']}\n"
+                tech_details += f"stderr: {o.test_results_parsed[i]['stderr']}\n"
+                tech_details += "\n\n\n"
+            return tech_details
+
+        def complete_log(o: Output):
+            ret = []
+            for test_res in o.test_results:
+                ret.append({
+                    "stdin": test_res["stdin"],
+                    "stdout": test_res["stdout"],
+                    "stderr": test_res["stderr"],
+                })
+            return str(ret)
+
+        COLUMNS_TO_FUNC = {
+            "Host IP": lambda x: Connection.get_hostname(x.target.connection),
+            "Port": lambda x: Connection.get_port(x.target.connection),
+            "Scheme": lambda x: Connection.get_scheme(x.target.connection),
+            "Vulnerable": lambda x: x.is_vuln_found(),
+            "Any timeout": lambda x: any(x.get_timeouts()),
+            "CVSS score": lambda x: getattr(x.plugin, 'cvss', 0.0),
+            "Vulnerability name": lambda x: getattr(x.plugin, 'name'),
+            "Description": lambda x: getattr(x.plugin, 'description'),
+            "Technical details": technical_details,
+            "Remediation": lambda x: getattr(x.plugin, 'remediation', ''),
+            "CVE": lambda x: getattr(x.plugin, 'CVE', ''),
+            "CVSS vector": lambda x: getattr(x.plugin, 'cvss_vector', ''),
+            "Complete log": complete_log,
+        }
+        out_rows = [list(COLUMNS_TO_FUNC.keys())]
+
+        # it works only in non multithread environment
+        for output in outputs:
+            tmp_row = []
+            for col in COLUMNS_TO_FUNC.keys():
+                tmp_row.append(COLUMNS_TO_FUNC[col](output))
+            out_rows.append(tmp_row)
+
+        # Create a workbook and add a worksheet.
+        workbook = xlsxwriter.Workbook(outfile)
+        worksheet = workbook.add_worksheet()
+
+        # Write tmp_rows as a table to the worksheet, cell after cell.
+        for row in range(len(out_rows)):
+            for col in range(len(out_rows[row])):
+                worksheet.write(row, col, out_rows[row][col])
+
+        workbook.close()
