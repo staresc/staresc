@@ -1,2 +1,3 @@
 from .exporter import Exporter
-from .handlers import StarescHandler, StarescCSVHandler, StarescStdoutHandler
+from .handlers import StarescHandler, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler
+
