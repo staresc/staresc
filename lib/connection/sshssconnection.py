@@ -55,7 +55,7 @@ class SSHSSConnection(Connection):
             raise StarescCommandError(msg)
             
 
-    def run(self, cmd: str, timeout: float = Connection.COMMAND_TIMEOUT) -> Tuple[str, str, str]:
+    def run(self, cmd: str, timeout: float = Connection.command_timeout) -> Tuple[str, str, str]:
         
         self.chan.settimeout(timeout)
 

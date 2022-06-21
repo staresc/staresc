@@ -51,7 +51,7 @@ class SSHConnection(Connection):
             raise StarescConnectionError(msg)
             
 
-    def run(self, cmd: str, timeout: float = Connection.COMMAND_TIMEOUT, bufsize: int = 4096) -> Tuple[str, str, str]:
+    def run(self, cmd: str, timeout: float = Connection.command_timeout, bufsize: int = 4096) -> Tuple[str, str, str]:
 
         try:
             chan = self.client.get_transport().open_session()

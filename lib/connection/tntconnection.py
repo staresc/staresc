@@ -24,7 +24,7 @@ class TNTConnection(Connection):
         telnet_args = {
             'host'    : self.get_hostname(self.connection),
             'port'    : self.get_port(self.connection),
-            'timeout' : Connection.COMMAND_TIMEOUT
+            'timeout' : Connection.command_timeout
         }
 
         try:
@@ -50,7 +50,7 @@ class TNTConnection(Connection):
             raise StarescAuthenticationError(msg)
 
 
-    def run(self, cmd: str, timeout: float = Connection.COMMAND_TIMEOUT) -> Tuple[str, str, str]:
+    def run(self, cmd: str, timeout: float = Connection.command_timeout) -> Tuple[str, str, str]:
         try:
             delimiter_canary = binascii.b2a_hex(os.urandom(15))
             self.client.write(cmd.encode('ascii') + b"; echo " + delimiter_canary + b'\n')
