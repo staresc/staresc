@@ -1,9 +1,7 @@
-import socket
-import paramiko
-import os
+import socket, re, os, binascii
 from typing import Tuple
-import binascii
-import re
+
+import paramiko
 
 from lib.exceptions import StarescAuthenticationError, StarescCommandError
 from lib.connection import Connection

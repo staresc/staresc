@@ -1,6 +1,7 @@
-import paramiko
-from typing import Tuple
 import logging
+from typing import Tuple
+
+import paramiko
 
 from lib.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
 from lib.connection import Connection

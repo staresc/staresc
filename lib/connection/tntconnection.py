@@ -1,7 +1,5 @@
-import telnetlib
+import os,binascii, re, telnetlib
 from typing import Tuple
-import os,binascii
-import re
 
 from lib.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
 from lib.connection import Connection
