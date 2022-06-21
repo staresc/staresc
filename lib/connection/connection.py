@@ -28,6 +28,11 @@ class Connection():
 
     # static fields
     command_timeout: float = 60
+    """Command timeout
+
+    This field indicates how much a connection should wait for data before it 
+    will not. Changing this value might generate false negatives in the result    
+    """
 
     def __init__(self, connection: str) -> None:
         """Class constructor
@@ -39,18 +44,22 @@ class Connection():
 
     @staticmethod
     def get_scheme(connection: str) -> str:
+        """Get scheme from connection string"""
         return urlparse(connection).scheme
 
     @staticmethod
     def get_hostname(connection: str) -> str:
+        """Get hostname from connection string"""
         return urlparse(connection).hostname
 
     @staticmethod
     def get_port(connection: str) -> int:
+        """Get port from connection string"""
         return int(urlparse(connection).port)
 
     @staticmethod
     def get_credentials(connection: str) -> Tuple[str, str]:
+        """Get user credentials from connection string"""
         p = urlparse(connection)
 
         if "\\" in p.password:
@@ -60,6 +69,7 @@ class Connection():
 
     @staticmethod
     def get_root_credentials(connection: str) -> Tuple[str, str]:
+        """Get root credentials from connection string"""
         path = urlparse(connection).path
         if path.count(':') != 1:
             return '', ''
@@ -67,20 +77,36 @@ class Connection():
 
     @staticmethod
     def is_connection_string(connection: str) -> bool:
+        """Check if the provided connection string is properly formatted"""
         tmp = urlparse(connection)
         log_ok = not (not tmp.hostname or not tmp.username or not tmp.password)
         return log_ok
 
+
     def close(self) -> None:
+        """Close the connection"""
         self.client.close()
 
+
     def connect(self, ispubkey: bool) -> None:
+        """Interface to make the connection connect to the target"""
         pass
+
 
     def run(self, cmd: str) -> Tuple[str, str, str]:
+        """Interface to run a command on the target machine 
+        
+        it uses the underlying connection and enforces the return values in the
+        form of a tuple composed by stdin, stdout and stderr
+        """
         pass
 
+
     def elevate(self) -> bool:
+        """Perform the privilege escalation 
+        
+        It uses the root credentials provided in the connection string
+        """
         root_username, root_passwd = self.get_root_credentials(self.connection)
         if root_username == '' or root_passwd == '':
             return False
