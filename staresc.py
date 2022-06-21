@@ -12,7 +12,7 @@ import os
 
 from lib.exporter import Exporter, StarescCSVHandler, StarescStdoutHandler
 from lib.log import StarescLogger
-from lib.runner import StarescRunner
+from lib.core import StarescRunner
 
 ##################################### CLI #######################################
 
