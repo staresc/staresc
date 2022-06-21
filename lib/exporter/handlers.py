@@ -92,14 +92,13 @@ class StarescStdoutHandler(StarescHandler):
             host = o.target.get_hostname(o.target.connection)
             port = o.target.get_port(o.target.connection)
 
-        if f"{host}:{port}" not in self.scan_summary:
-            self.scan_summary[f"{host}:{port}"] = {}
+            if f"{host}:{port}" not in self.scan_summary:
+                self.scan_summary[f"{host}:{port}"] = {}
 
-        if o.plugin.severity in self.scan_summary[f"{host}:{port}"]:
-            self.scan_summary[f"{host}:{port}"][o.plugin.severity] += 1
-
-        else:
-            self.scan_summary[f"{host}:{port}"][o.plugin.severity] = 1
+            if o.plugin.severity in self.scan_summary[f"{host}:{port}"]:
+                self.scan_summary[f"{host}:{port}"][o.plugin.severity] += 1
+            else:
+                self.scan_summary[f"{host}:{port}"][o.plugin.severity] = 1
 
 
     def export_handler(self, outputs: list[Output], outfile: str):
