@@ -96,7 +96,6 @@ class SSHSSConnection(Connection):
         and returned as Tuple.
 
         Raises:
-            StarescConnectionError -- Failure in connection establishment
             StarescCommandError -- The provided command timed out
         """
         self.chan.settimeout(timeout)
