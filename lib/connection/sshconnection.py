@@ -8,6 +8,10 @@ from lib.connection import Connection
 logger = logging.getLogger(__name__)
 
 class SSHConnection(Connection):
+    """SSHConnection is the main Connection implementation for SSH
+
+    high level object for the commands and data we're sending to the target host
+    """
 
     client: paramiko.SSHClient
 
