@@ -71,7 +71,7 @@ class SSHConnection(Connection):
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
             raise StarescAuthenticationError(msg)
 
-        except paramiko.SSHException:
+        except (paramiko.SSHException, paramiko.ssh_exception.NoValidConnectionsError):
             msg = f"An error occured when trying to connect"
             raise StarescConnectionError(msg)
             

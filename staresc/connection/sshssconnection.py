@@ -3,7 +3,7 @@ from typing import Tuple
 
 import paramiko
 
-from staresc.exceptions import StarescAuthenticationError, StarescCommandError
+from staresc.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
 from staresc.connection import Connection
 
 class SSHSSConnection(Connection):
@@ -82,9 +82,9 @@ class SSHSSConnection(Connection):
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
             raise StarescAuthenticationError(msg)
 
-        except paramiko.SSHException:
+        except (paramiko.SSHException, paramiko.ssh_exception.NoValidConnectionsError):
             msg = f"An error occured when trying to connect"
-            raise StarescCommandError(msg)
+            raise StarescConnectionError(msg)
             
 
     def run(self, cmd: str, timeout: float = Connection.command_timeout) -> Tuple[str, str, str]:
