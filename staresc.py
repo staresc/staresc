@@ -24,12 +24,13 @@ def cliparse() -> argparse.Namespace:
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
     parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target')
     
+    single_outputs = parser.add_argument_group()
+    single_outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
+    single_outputs.add_argument('-oxlsx', '--output-xlsx', metavar='filename', action='store', default='', help='export results on a xlsx (MS Excel) file')
+    single_outputs.add_argument('-ojson', '--output-json', metavar='filename', action='store', default='', help='export results on a json file')
+    
     outputs = parser.add_mutually_exclusive_group(required=False)
-    outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
-    outputs.add_argument('-oxlsx', '--output-xlsx', metavar='filename', action='store', default='',
-                         help='export results on a xlsx (MS Excel) file')
-    outputs.add_argument('-ojson', '--output-json', metavar='filename', action='store', default='',
-                         help='export results on a json file')
+    outputs.add_argument_group(single_outputs)
     outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
     
     targets = parser.add_mutually_exclusive_group(required=True)
