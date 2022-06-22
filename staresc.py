@@ -82,7 +82,7 @@ def main():
 
     if args.output_all:
         StarescExporter.register_handler(StarescCSVHandler(args.output_all))
-        
+        StarescExporter.register_handler(StarescXLSXHandler(args.output_all))
 
     if args.output_csv:
         StarescExporter.register_handler(StarescCSVHandler(args.output_csv))
