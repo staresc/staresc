@@ -10,3 +10,9 @@ from .sshconnection import SSHConnection
 from .sshssconnection import SSHSSConnection
 from .tntconnection import TNTConnection
 
+SCHEME_TO_CONNECTION = {
+    "ssh"    : SSHConnection,
+    "telnet" : TNTConnection,
+    "sshss"  : SSHSSConnection
+}
+"""Mapping for supported shemes to relative connection class"""
