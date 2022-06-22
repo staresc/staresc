@@ -21,8 +21,7 @@ logger = StarescLogger()
 
 def cliparse() -> argparse.Namespace:
     parser = argparse.ArgumentParser( prog='staresc', description='Make SSH/TELNET PTs great again!', epilog=' ', formatter_class=argparse.RawTextHelpFormatter )
-    parser.add_argument( '-v', '--verbose', action='count', default=0, help='increase output verbosity (-vv for debug)' )
-    parser.add_argument( '-P', '--pubkey', action='store_true', default=False, help='specify if a pubkey is provided' )
+    parser.add_argument( '-d', '--debug', action='store_true', default=False, help='increase output verbosity to debug mode' )
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
     parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target')
     
@@ -78,7 +77,7 @@ def main():
     
     args = cliparse()
 
-    if args.verbose == 1:
+    if args.debug:
         logger.setLevelDebug()
         logger.debug("Logger set to debug mode")
     else:
@@ -120,7 +119,7 @@ def main():
     sr = StarescRunner(logger)
     
     plugins = sr.parse_plugins(plugins_dir)
-    sr.run(targets, plugins, args.pubkey)
+    sr.run(targets, plugins)
 
 
 if __name__ == '__main__':

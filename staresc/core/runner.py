@@ -47,7 +47,7 @@ class StarescRunner:
                 StarescExporter.import_output(to_append)
 
 
-    def run(self, targets: list[str], plugins: list[Plugin], pubkey: bool):
+    def run(self, targets: list[str], plugins: list[Plugin]):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
