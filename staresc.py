@@ -14,6 +14,8 @@ from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHa
 from staresc.log import StarescLogger
 from staresc.core import StarescRunner
 
+# Configure logger
+logger = StarescLogger()
 
 ##################################### CLI #######################################
 
@@ -43,6 +45,22 @@ def cliparse() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def parsepath(p:str) -> str:
+    full_path = os.path.join(os.getcwd(), p)
+
+    # Create directory if doesn't exist
+    if not os.path.isdir(os.path.dirname(full_path)):
+        logger.debug(f"Created directory: {full_path}")
+        os.makedirs(full_path)
+
+    # Choose file name "results" if patter does not provide it
+    if not os.path.basename(full_path):
+        logger.debug(f"Choosing default filename: results")
+        full_path = os.path.join(full_path, "results")
+
+    return full_path
+
+
 def banner() -> str:
     b = " _______ _________ _______  _______  _______  _______  _______ \n"
     b += "(  ____ \\\\__   __/(  ___  )(  ____ )(  ____ \(  ____ \(  ____ \\\n"
@@ -57,8 +75,6 @@ def banner() -> str:
 
 
 def main():
-    # Configure logger
-    logger = StarescLogger()
     
     args = cliparse()
 
@@ -85,9 +101,11 @@ def main():
     StarescExporter.register_handler(StarescStdoutHandler(""))
 
     if args.output_all:
-        StarescExporter.register_handler(StarescCSVHandler(args.output_all))
-        StarescExporter.register_handler(StarescXLSXHandler(args.output_xlsx))
-        StarescExporter.register_handler(StarescJSONHandler(args.output_json))
+        
+        full_path = parsepath(args.output_all)
+        StarescExporter.register_handler(StarescCSVHandler(os.path.join(full_path + ".csv")))
+        StarescExporter.register_handler(StarescXLSXHandler(os.path.join(full_path + ".xlsx")))
+        StarescExporter.register_handler(StarescJSONHandler(os.path.join(full_path + ".json")))
 
     if args.output_csv:
         StarescExporter.register_handler(StarescCSVHandler(args.output_csv))
