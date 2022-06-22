@@ -1,4 +1,4 @@
-name: Python PyInstaller Build Standalone Executable
+name: Standalone Executable
 
 on:
   push:
