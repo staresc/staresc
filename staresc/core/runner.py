@@ -4,7 +4,7 @@ import yaml
 
 from staresc.log import StarescLogger
 from staresc.core import Staresc
-from staresc.exporter import Exporter
+from staresc.exporter import StarescExporter
 from staresc.plugin_parser import Plugin
 
 
@@ -40,7 +40,7 @@ class StarescRunner:
                 self.logger.error(f"{type(e).__name__}: {e}")
 
             if to_append:
-                Exporter.import_output(to_append)
+                StarescExporter.import_output(to_append)
 
 
     def run(self, targets: list[str], plugins: list[Plugin], pubkey: bool):
@@ -54,7 +54,7 @@ class StarescRunner:
                 target = targets[futures.index(future)]
                 self.logger.debug(f"Finished scan on target {target}")
 
-        Exporter.export()
+        StarescExporter.export()
 
 
     @staticmethod

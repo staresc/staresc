@@ -4,7 +4,7 @@ from queue import Queue
 from staresc.exporter.handlers import StarescHandler
 from staresc.output import Output
 
-class Exporter():
+class StarescExporter():
 
     runs_results: Queue[Output] = Queue()
     handlers: list[StarescHandler] = []

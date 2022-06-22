@@ -10,7 +10,7 @@ I'm @5amu, welcome!
 import argparse
 import os
 
-from staresc.exporter import Exporter, StarescCSVHandler, StarescStdoutHandler
+from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler
 from staresc.log import StarescLogger
 from staresc.core import StarescRunner
 
@@ -76,13 +76,13 @@ def main():
     else:
         plugins_dir = args.config
 
-    Exporter.register_handler(StarescStdoutHandler(""))
+    StarescExporter.register_handler(StarescStdoutHandler(""))
 
     if args.output_all:
-        Exporter.register_handler(StarescCSVHandler(args.output_all))
+        StarescExporter.register_handler(StarescCSVHandler(args.output_all))
         
     if args.output_csv:
-        Exporter.register_handler(StarescCSVHandler(args.output_csv))
+        StarescExporter.register_handler(StarescCSVHandler(args.output_csv))
 
     print("\033[1m\033[1;31m" + banner() + "\033[0m")
     sr = StarescRunner(logger)
