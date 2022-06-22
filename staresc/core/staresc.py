@@ -1,14 +1,10 @@
-import os
 import re
-import sys
 from functools import lru_cache
 
-from lib.connection import *
-from lib.exceptions import StarescCommandError, StarescConnectionStringError
-from lib.plugin_parser import *
-from lib.output import *
-
-SUPPORTED_SCHEMAS = [ 'ssh', 'tnt', 'sshss']
+from staresc.connection import Connection, SCHEME_TO_CONNECTION
+from staresc.plugin_parser import Plugin
+from staresc.output import Output
+from staresc.exceptions import StarescCommandError, StarescConnectionStringError
 
 class Staresc():
 
@@ -24,16 +20,12 @@ class Staresc():
             raise StarescConnectionStringError(msg)
 
         scheme = Connection.get_scheme(connection_string)
-        MAP_CONNECTION = {
-            "ssh"    : SSHConnection,
-            "telnet" : TNTConnection,
-            "sshss"  : SSHSSConnection
-        }
+        
         try:
-            self.connection = MAP_CONNECTION[scheme](connection_string)
+            self.connection = SCHEME_TO_CONNECTION[scheme](connection_string)
 
         except KeyError:
-            msg = f"scheme is not valid: allowed schemes are {SUPPORTED_SCHEMAS}"
+            msg = f"scheme is not valid: allowed schemes are {SCHEME_TO_CONNECTION.keys()}"
             raise StarescConnectionStringError(msg)            
 
 

@@ -1,13 +1,15 @@
-import telnetlib
+import os,binascii, re, telnetlib
 from typing import Tuple
-import os,binascii
-import re
 
-from lib.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
-from lib.connection import Connection
+from staresc.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
+from staresc.connection import Connection
 
 
 class TNTConnection(Connection):
+    """TNTConnection is the main Connection implementation for Telnet
+
+    high level object for the commands and data we're sending to the target host
+    """
 
     client: telnetlib.Telnet
 
@@ -15,16 +17,19 @@ class TNTConnection(Connection):
         super().__init__(connection)
 
 
-    @staticmethod
-    def match_scheme(s: str) -> bool:
-        return s == "telnet"
-
-
     def connect(self) -> None:
+        """TNT implementation to connect to the target server
+
+        It uses telnetlib to handle Telnet communication. 
+
+        Raises:
+            StarescAuthenticationError -- raised when login fails
+            StarescConnectionError -- raised when the program can't connect to the target 
+        """
         telnet_args = {
             'host'    : self.get_hostname(self.connection),
             'port'    : self.get_port(self.connection),
-            'timeout' : Connection.COMMAND_TIMEOUT
+            'timeout' : Connection.command_timeout
         }
 
         try:
@@ -50,7 +55,17 @@ class TNTConnection(Connection):
             raise StarescAuthenticationError(msg)
 
 
-    def run(self, cmd: str, timeout: float = Connection.COMMAND_TIMEOUT) -> Tuple[str, str, str]:
+    def run(self, cmd: str, timeout: float = Connection.command_timeout) -> Tuple[str, str, str]:
+        """TNT implementation to run commands on the target
+        
+        every command reuses a single channel to send commands and receive both
+        stdin and stdout, it understands when a command is done executing using
+        canary tokens generated for each command, then the output will be red
+        and returned as Tuple.
+
+        Raises:
+            StarescCommandError -- The provided command timed out
+        """
         try:
             delimiter_canary = binascii.b2a_hex(os.urandom(15))
             self.client.write(cmd.encode('ascii') + b"; echo " + delimiter_canary + b'\n')
@@ -69,8 +84,3 @@ class TNTConnection(Connection):
         stdout = re.split(delimiter_canary.decode('ascii') + '\s*\r\n', stdout.decode('ascii'))[-2]
         stdout = stdout.rstrip('\r\n')
         return cmd, stdout, None
-
-    @staticmethod
-    def escape_ansi(cls, line):
-        ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
-        return ansi_escape.sub('', line)

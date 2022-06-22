@@ -1,7 +1,7 @@
 from typing import Tuple
-from lib.exceptions import StarescPluginError
+from staresc.exceptions import StarescPluginError
 
-from lib.plugin_parser import Parser, Matcher, Extractor
+from staresc.plugin_parser import Parser, Matcher, Extractor
 
 # class that represents a single test (command and relative parsers)
 class Test:

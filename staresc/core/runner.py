@@ -1,14 +1,18 @@
-import concurrent.futures
-import yaml
-import os
+import os, concurrent.futures
 
-from lib.exporter.exporter import Exporter
-from lib.log import StarescLogger
-from lib.plugin_parser.plugin import Plugin
-from lib.core import Staresc
+import yaml
+
+from staresc.log import StarescLogger
+from staresc.core import Staresc
+from staresc.exporter import StarescExporter
+from staresc.plugin_parser import Plugin
 
 
 class StarescRunner:
+    """StarescRunner is a factory for Staresc objects
+    
+    This class is responsible for parsing connection strings
+    """
 
     targets: list[str]
     logger:  StarescLogger
@@ -40,7 +44,7 @@ class StarescRunner:
                 self.logger.error(f"{type(e).__name__}: {e}")
 
             if to_append:
-                Exporter.import_output(to_append)
+                StarescExporter.import_output(to_append)
 
 
     def run(self, targets: list[str], plugins: list[Plugin], pubkey: bool):
@@ -54,7 +58,7 @@ class StarescRunner:
                 target = targets[futures.index(future)]
                 self.logger.debug(f"Finished scan on target {target}")
 
-        Exporter.export()
+        StarescExporter.export()
 
 
     @staticmethod

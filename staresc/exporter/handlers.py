@@ -4,9 +4,9 @@ import xlsxwriter
 import json
 from tabulate import tabulate
 
-from lib.log import StarescLogger
-from lib.output import Output
-from lib.connection import Connection
+from staresc.log import StarescLogger
+from staresc.output import Output
+from staresc.connection import Connection
 
 class StarescHandler:
 

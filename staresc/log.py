@@ -1,6 +1,6 @@
 import logging
 
-from lib.output import Output
+from staresc.output import Output
 
 VULN    = logging.INFO + 1
 DEFAULT = 1000

@@ -10,9 +10,10 @@ I'm @5amu, welcome!
 import argparse
 import os
 
-from lib.exporter import Exporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler
-from lib.log import StarescLogger
-from lib.runner import StarescRunner
+from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler
+from staresc.log import StarescLogger
+from staresc.core import StarescRunner
+
 
 ##################################### CLI #######################################
 
@@ -80,21 +81,21 @@ def main():
     else:
         plugins_dir = args.config
 
-    Exporter.register_handler(StarescStdoutHandler(""))
+    StarescExporter.register_handler(StarescStdoutHandler(""))
 
     if args.output_all:
-        Exporter.register_handler(StarescCSVHandler(args.output_all))
-        Exporter.register_handler(StarescXLSXHandler(args.output_xlsx))
-        Exporter.register_handler(StarescJSONHandler(args.output_json))
+        StarescExporter.register_handler(StarescCSVHandler(args.output_all))
+        StarescExporter.register_handler(StarescXLSXHandler(args.output_xlsx))
+        StarescExporter.register_handler(StarescJSONHandler(args.output_json))
 
     if args.output_csv:
-        Exporter.register_handler(StarescCSVHandler(args.output_csv))
+        StarescExporter.register_handler(StarescCSVHandler(args.output_csv))
 
     if args.output_xlsx:
-        Exporter.register_handler(StarescXLSXHandler(args.output_xlsx))
+        StarescExporter.register_handler(StarescXLSXHandler(args.output_xlsx))
 
     if args.output_json:
-        Exporter.register_handler(StarescJSONHandler(args.output_json))
+        StarescExporter.register_handler(StarescJSONHandler(args.output_json))
 
     print("\033[1m\033[1;31m" + banner() + "\033[0m")
     sr = StarescRunner(logger)

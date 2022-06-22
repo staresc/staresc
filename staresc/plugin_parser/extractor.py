@@ -1,7 +1,7 @@
 import re
 from typing import Tuple
 
-from lib.plugin_parser import Parser
+from staresc.plugin_parser import Parser
 
 # class that represents an extractor, it is a parser that implements the method extract
 class Extractor(Parser):
