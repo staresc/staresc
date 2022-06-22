@@ -1,7 +1,7 @@
 import re
 from typing import Tuple
 
-from lib.plugin_parser import Parser
+from staresc.plugin_parser import Parser
 
 # class that represents a matcher, it is a parser that implements the method match
 class Matcher(Parser):

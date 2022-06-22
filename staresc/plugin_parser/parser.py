@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from lib.exceptions import StarescPluginError
+from staresc.exceptions import StarescPluginError
 
 # parent class of matcher and extractor
 # it represents a parser with its rule

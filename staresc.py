@@ -10,9 +10,9 @@ I'm @5amu, welcome!
 import argparse
 import os
 
-from lib.exporter import Exporter, StarescCSVHandler, StarescStdoutHandler
-from lib.log import StarescLogger
-from lib.core import StarescRunner
+from staresc.exporter import Exporter, StarescCSVHandler, StarescStdoutHandler
+from staresc.log import StarescLogger
+from staresc.core import StarescRunner
 
 ##################################### CLI #######################################
 

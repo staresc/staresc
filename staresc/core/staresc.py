@@ -1,10 +1,10 @@
 import re
 from functools import lru_cache
 
-from lib.connection import Connection, SCHEME_TO_CONNECTION
-from lib.plugin_parser import Plugin
-from lib.output import Output
-from lib.exceptions import StarescCommandError, StarescConnectionStringError
+from staresc.connection import Connection, SCHEME_TO_CONNECTION
+from staresc.plugin_parser import Plugin
+from staresc.output import Output
+from staresc.exceptions import StarescCommandError, StarescConnectionStringError
 
 class Staresc():
 

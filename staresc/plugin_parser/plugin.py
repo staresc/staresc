@@ -1,5 +1,5 @@
-from lib.exceptions import StarescPluginError
-from lib.plugin_parser import Test
+from staresc.exceptions import StarescPluginError
+from staresc.plugin_parser import Test
 
 # class that represents the plugin
 # it contains info about the plugin (eg: id) and the list of tests to performs

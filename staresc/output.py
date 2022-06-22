@@ -1,5 +1,5 @@
-from lib.plugin_parser import Plugin
-from lib.connection import Connection
+from staresc.plugin_parser import Plugin
+from staresc.connection import Connection
 
 class Output():
     target: Connection

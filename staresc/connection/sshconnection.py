@@ -3,8 +3,8 @@ from typing import Tuple
 
 import paramiko
 
-from lib.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
-from lib.connection import Connection
+from staresc.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
+from staresc.connection import Connection
 
 logger = logging.getLogger(__name__)
 

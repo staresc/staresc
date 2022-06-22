@@ -1,8 +1,8 @@
 import os,binascii, re, telnetlib
 from typing import Tuple
 
-from lib.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
-from lib.connection import Connection
+from staresc.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
+from staresc.connection import Connection
 
 
 class TNTConnection(Connection):

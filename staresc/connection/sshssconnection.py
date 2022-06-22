@@ -3,8 +3,8 @@ from typing import Tuple
 
 import paramiko
 
-from lib.exceptions import StarescAuthenticationError, StarescCommandError
-from lib.connection import Connection
+from staresc.exceptions import StarescAuthenticationError, StarescCommandError
+from staresc.connection import Connection
 
 class SSHSSConnection(Connection):
     """SSHSSConnection is a Connection implementation for SSH

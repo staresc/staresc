@@ -2,10 +2,10 @@ import os, concurrent.futures
 
 import yaml
 
-from lib.log import StarescLogger
-from lib.core import Staresc
-from lib.exporter import Exporter
-from lib.plugin_parser import Plugin
+from staresc.log import StarescLogger
+from staresc.core import Staresc
+from staresc.exporter import Exporter
+from staresc.plugin_parser import Plugin
 
 
 class StarescRunner:

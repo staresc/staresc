@@ -1,8 +1,8 @@
 import os
 from queue import Queue
 
-from lib.exporter.handlers import StarescHandler
-from lib.output import Output
+from staresc.exporter.handlers import StarescHandler
+from staresc.output import Output
 
 class Exporter():
 

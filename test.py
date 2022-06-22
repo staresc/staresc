@@ -4,10 +4,10 @@ import unittest
 import paramiko
 import os
 
-from lib.connection.sshconnection import SSHConnection
-from lib.connection.tntconnection import TNTConnection
-from lib.core.staresc import Staresc
-from lib.exceptions import AuthenticationError
+from staresc.connection.sshconnection import SSHConnection
+from staresc.connection.tntconnection import TNTConnection
+from staresc.core.staresc import Staresc
+from staresc.exceptions import AuthenticationError
 
 PLUGINDIR = "./test/plugins/"
 
