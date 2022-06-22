@@ -9,6 +9,10 @@ from staresc.plugin_parser import Plugin
 
 
 class StarescRunner:
+    """StarescRunner is a factory for Staresc objects
+    
+    This class is responsible for parsing connection strings
+    """
 
     targets: list[str]
     logger:  StarescLogger
