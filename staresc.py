@@ -9,7 +9,6 @@ I'm @5amu, welcome!
 
 import argparse
 import os
-from time import sleep
 
 from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler
 from staresc.log import StarescLogger
@@ -35,7 +34,6 @@ def cliparse() -> argparse.Namespace:
     outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
     
     targets = parser.add_mutually_exclusive_group(required=True)
-    targets.add_argument('-t', '--test', action='store_true', default=False, help=f'run unit tests for staresc')
     targets.add_argument('-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
     connection_help  = "schema://user:auth@host:port/root_usr:root_passwd\n"
@@ -77,22 +75,6 @@ def banner() -> str:
 def main():
     
     args = cliparse()
-
-    if args.test:
-        import unittest, multiprocessing
-        from staresc.test import StarescTester, start_server
-
-        th = multiprocessing.Process(target=start_server, args=(9001, "127.0.0.1"))
-        th.start()
-
-        test_suite = unittest.TestSuite()
-        for t in StarescTester.TESTS:
-            test_suite.addTest(StarescTester(t))
-
-        unittest.TextTestRunner().run(test_suite)
-
-        th.terminate()      
-        return
 
     if args.debug:
         logger.setLevelDebug()
