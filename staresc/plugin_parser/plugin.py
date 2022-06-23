@@ -5,11 +5,15 @@ from staresc.plugin_parser import Test
 # it contains info about the plugin (eg: id) and the list of tests to performs
 # methods get_matcher(), get_command() and parse() implemented for backward compatibility
 class Plugin:
+
+    ALLOWED_MATCH_CONDS = [ "and", "or" ]
+
     # mandatory fields
     tests: list[Test]
     id: str
     # TODO change name, now "matcher" is preserved for retro-compatibility
     distribution_matcher: str
+    match_condition: str
 
     # optional plugin info
     author: str
@@ -22,10 +26,25 @@ class Plugin:
     remediation: str
     # TODO tags?
 
+    @staticmethod
+    def __get_condition(d: dict) -> str:
+        try:
+            selected = d["match_condition"]
+
+        except KeyError:
+            return "and"
+
+        if selected in Plugin.ALLOWED_MATCH_CONDS:
+            return selected
+        else:
+            msg = f'Invalid condition {selected}'
+            raise StarescPluginError(msg)
+
 
     def __init__(self, plugin_content: dict):
         try:
             self.id   = plugin_content["id"]
+            self.match_condition = Plugin.__get_condition(plugin_content)
             test_list = plugin_content["tests"]
 
         except KeyError:
