@@ -1,13 +1,16 @@
 #!/usr/bin/python3 -Wignore
 
 import unittest
-import paramiko
 import os
 
-from staresc.connection.sshconnection import SSHConnection
-from staresc.connection.tntconnection import TNTConnection
-from staresc.core.staresc import Staresc
-from staresc.exceptions import AuthenticationError
+import paramiko
+import yaml
+
+from staresc.core import Staresc
+from staresc.connection import SSHConnection, TNTConnection
+from staresc.output import Output
+from staresc.plugin_parser import Plugin
+from staresc.exceptions import StarescAuthenticationError, StarescConnectionError, StarescCommandError
 
 PLUGINDIR = "./test/plugins/"
 
@@ -71,16 +74,14 @@ class TestConnection(unittest.TestCase):
             c1 = SSHConnection(UNREACHABLE_TARGETS[0])
             c1.connect()
         except Exception as e:
-            self.assertTrue(isinstance(e, paramiko.ssh_exception.NoValidConnectionsError))
+            self.assertTrue(isinstance(e, StarescConnectionError))
 
         try:
             c2 = TNTConnection(UNREACHABLE_TARGETS[1])
             c2.connect()
         # Exception during telnetlib OSError during write() and EOFError during read()
         except Exception as e:
-            self.assertTrue(
-                isinstance(e, OSError) or isinstance(e, EOFError)
-            )
+            self.assertTrue(isinstance(e, StarescConnectionError))
 
 
 class TestStaresc(unittest.TestCase):
@@ -92,35 +93,16 @@ class TestStaresc(unittest.TestCase):
         se.prepare()
 
         # check for CVE-2021-3156
-        plugin = os.path.join(os.getcwd(), PLUGINDIR, "CVE-2021-3156.yaml")        
-        out = se.do_check(plugin, True)
+        plugin = os.path.join(os.getcwd(), PLUGINDIR, "CVE-2021-3156.yaml")
+
+        out: Plugin = None
+        with open(plugin, "r") as f:
+            p = Plugin(yaml.load(f.read(), Loader=yaml.Loader))
+            out = se.do_check(p)
         
         # Assert result is not empty
         self.assertTrue(out != None)
-
-        # Adjust for tuples -> list
-        sub = []
-        for i in out['parse_results']:
-            sub.append(list(i))
-        out['parse_results'] = sub
-
-        self.assertTrue(
-            "plugin" in out.keys() and "parse_results" in out.keys(),
-            f"Key(s) not found in staresc's output:\n\n{out}\n\n"
-        )
-        self.assertTrue(
-            len(out["parse_results"]) == 2 and len(out["parse_results"][0]) == 2, 
-            f"Incorrect output in parse_results:\n\n{out['parse_results']}\n\n"
-        )
-        self.assertTrue(
-            isinstance(out["parse_results"][0][0], bool) and isinstance(out["parse_results"][1][0], bool), 
-            f"Arrays of results should have a boolean in index 0:\n\n{out['parse_results'][0]}\n{out['parse_results'][1]}\n\n"
-        )
-
-        self.assertEqual(out["plugin"], "CVE-2021-3156.yaml", "Wrong plugin field")
-        sudoedit_vulnerable = out["parse_results"][0][0]
-        sudo_vulnerable_version = out["parse_results"][1][0]
-        self.assertTrue(sudoedit_vulnerable and sudo_vulnerable_version, "Parse result should report the presence of the vulnerability")
+        self.assertTrue(out.is_vuln_found())        
         
 
     def test_lxc_plugin_execution_on_vulnerable(self):
@@ -130,33 +112,15 @@ class TestStaresc(unittest.TestCase):
 
         # check for CVE-2021-3156
         plugin = os.path.join(os.getcwd(), PLUGINDIR, "lxc.yaml")        
-        out = se.do_check(plugin, True)
         
+        out: Plugin = None
+        with open(plugin, "r") as f:
+            p = Plugin(yaml.load(f.read(), Loader=yaml.Loader))
+            out = se.do_check(p)
+
         # Assert result is not empty
         self.assertTrue(out != None)
-
-        # Adjust for tuples -> list
-        sub = []
-        for i in out['parse_results']:
-            sub.append(list(i))
-        out['parse_results'] = sub
-
-        self.assertTrue(
-            "plugin" in out.keys() and "parse_results" in out.keys(),
-            f"Key(s) not found in staresc's output:\n\n{out}\n\n"
-        )
-        self.assertTrue(
-            len(out["parse_results"]) == 1 and len(out["parse_results"][0]) == 2, 
-            f"Incorrect output in parse_results:\n\n{out['parse_results']}\n\n"
-        )
-        self.assertTrue(
-            isinstance(out["parse_results"][0][0], bool), 
-            f"Arrays of results should have a boolean in index 0:\n\n{out['parse_results'][0]}\n\n"
-        )
-
-        self.assertEqual(out["plugin"], "lxc.yaml", "Wrong plugin field")
-        vulnerable = out["parse_results"][0][0]
-        self.assertTrue(vulnerable, "Parse result should report the presence of the vulnerability")
+        self.assertTrue(out.is_vuln_found())
 
     
     def test_CVE20213156_plugin_execution_on_patched(self):
@@ -166,34 +130,15 @@ class TestStaresc(unittest.TestCase):
 
         # check for CVE-2021-3156
         plugin = os.path.join(os.getcwd(), PLUGINDIR, "CVE-2021-3156.yaml")        
-        out = se.do_check(plugin, True)
         
+        out: Plugin = None
+        with open(plugin, "r") as f:
+            p = Plugin(yaml.load(f.read(), Loader=yaml.Loader))
+            out = se.do_check(p)
+
         # Assert result is not empty
         self.assertTrue(out != None)
-
-        # Adjust for tuples -> list
-        sub = []
-        for i in out['parse_results']:
-            sub.append(list(i))
-        out['parse_results'] = sub
-
-        self.assertTrue(
-            "plugin" in out.keys() and "parse_results" in out.keys(),
-            f"Key(s) not found in staresc's output:\n\n{out}\n\n"
-        )
-        self.assertTrue(
-            len(out["parse_results"]) == 2 and len(out["parse_results"][0]) == 2, 
-            f"Incorrect output in parse_results:\n\n{out['parse_results']}\n\n"
-        )
-        self.assertTrue(
-            isinstance(out["parse_results"][0][0], bool) and isinstance(out["parse_results"][1][0], bool), 
-            f"Arrays of results should have a boolean in index 0:\n\n{out['parse_results'][0]}\n{out['parse_results'][1]}\n\n"
-        )
-
-        self.assertEqual(out["plugin"], "CVE-2021-3156.yaml", "Wrong plugin field")
-        sudoedit_vulnerable = out["parse_results"][0][0]
-        sudo_vulnerable_version = out["parse_results"][1][0]
-        self.assertTrue(not sudoedit_vulnerable and not sudo_vulnerable_version, "Parse result should report the absence of the vulnerability")
+        self.assertTrue(not out.is_vuln_found())
         
 
     def test_lxc_plugin_execution_on_patched(self):
@@ -203,33 +148,15 @@ class TestStaresc(unittest.TestCase):
 
         # check for CVE-2021-3156
         plugin = os.path.join(os.getcwd(), PLUGINDIR, "lxc.yaml")        
-        out = se.do_check(plugin, True)
         
+        out: Plugin = None
+        with open(plugin, "r") as f:
+            p = Plugin(yaml.load(f.read(), Loader=yaml.Loader))
+            out = se.do_check(p)
+
         # Assert result is not empty
         self.assertTrue(out != None)
-
-        # Adjust for tuples -> list
-        sub = []
-        for i in out['parse_results']:
-            sub.append(list(i))
-        out['parse_results'] = sub
-
-        self.assertTrue(
-            "plugin" in out.keys() and "parse_results" in out.keys(),
-            f"Key(s) not found in staresc's output:\n\n{out}\n\n"
-        )
-        self.assertTrue(
-            len(out["parse_results"]) == 1 and len(out["parse_results"][0]) == 2, 
-            f"Incorrect output in parse_results:\n\n{out['parse_results']}\n\n"
-        )
-        self.assertTrue(
-            isinstance(out["parse_results"][0][0], bool), 
-            f"Arrays of results should have a boolean in index 0:\n\n{out['parse_results'][0]}\n\n"
-        )
-
-        self.assertEqual(out["plugin"], "lxc.yaml", "Wrong plugin field")
-        vulnerable = out["parse_results"][0][0]
-        self.assertTrue(not vulnerable, "Parse result should report the presence of the vulnerability")
+        self.assertTrue(not out.is_vuln_found())
 
 
 class TestCredentials(unittest.TestCase):
@@ -239,13 +166,13 @@ class TestCredentials(unittest.TestCase):
         try:
             c1.connect()
         except Exception as e:
-            self.assertRaises(AuthenticationError,e)
+            self.assertRaises(StarescAuthenticationError,e)
 
         c2 = TNTConnection(WRONG_CREDENTIALS_LIST[1])
         try:
             c2.connect()
         except Exception as e:
-            self.assertRaises(AuthenticationError,e)
+            self.assertRaises(StarescAuthenticationError,e)
         
 
 if __name__ == "__main__":

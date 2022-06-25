@@ -23,7 +23,6 @@ def cliparse() -> argparse.Namespace:
     parser = argparse.ArgumentParser( prog='staresc', description='Make SSH/TELNET PTs great again!', epilog=' ', formatter_class=argparse.RawTextHelpFormatter )
     parser.add_argument( '-d', '--debug', action='store_true', default=False, help='increase output verbosity to debug mode' )
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
-    parser.add_argument( '-t', '--timeout', metavar='T', action='store', type=int, help=f'timeout for each command execution on target')
     
     single_outputs = parser.add_argument_group()
     single_outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
@@ -35,7 +34,7 @@ def cliparse() -> argparse.Namespace:
     outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
     
     targets = parser.add_mutually_exclusive_group(required=True)
-    targets.add_argument( '-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
+    targets.add_argument('-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
     connection_help  = "schema://user:auth@host:port/root_usr:root_passwd\n"
     connection_help += "auth can be either a password or a path to ssh\n"
