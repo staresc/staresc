@@ -2,14 +2,14 @@
 pkgname=staresc
 pkgver=0
 pkgrel=1
-_version="${pkgver}.${pkgrel}"
+_version="v${pkgver}.${pkgrel}"
 pkgdesc="Make SSH/TNT PTs Great Again!"
 arch=( 'any' )
-url="https://gitlab.com/5amu/staresc"
+url="https://github.com/5amu/staresc-ng"
 license=( 'GPLv3' )
-depends=( 'python' 'python-paramiko' )
-source=($pkgname-$_version.tar.gz::https://gitlab.com/5amu/$pkgname/-/archive/$_version/$pkgname-$_version.tar.gz)
-sha256sums=('03c1242e94b566667c49fd6c7c750b8aab7afb8ad8b2454914dc56f23dec2ebb')
+depends=( 'python' 'python-paramiko' 'python-yaml' 'python-xlsxwriter' )
+source=("https://github.com/5amu/staresc-ng/archive/refs/tags/${_version}.tar.gz")
+sha256sums=('SKIP')
 
 package() {
 	cd "$srcdir/$pkgname-$_version"
