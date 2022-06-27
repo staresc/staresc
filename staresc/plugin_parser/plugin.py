@@ -1,29 +1,78 @@
 from staresc.exceptions import StarescPluginError
 from staresc.plugin_parser import Test
 
-# class that represents the plugin
-# it contains info about the plugin (eg: id) and the list of tests to performs
-# methods get_matcher(), get_command() and parse() implemented for backward compatibility
 class Plugin:
+    """Plugin is the class handling plugins content
+
+    high level object that represents a plugin, with its data and functionalities
+    """
     # mandatory fields
     tests: list[Test]
+    """List of Tests 
+    
+    Each element of this list represents a test that is run on target machines
+    """
     id: str
+    """ID
+
+        This is the ID of the plugin, it is used as a unique identifier for the plugin
+    """
     # TODO change name, now "matcher" is preserved for retro-compatibility
     distribution_matcher: str
+    """Distribution Matcher
 
+        This field contains a regexp that identifies the target OSs supported by the plugin
+    """
     # optional plugin info
     author: str
+    """Author
+
+        This string indentifies the plugin's author
+    """
     name: str
+    """Name
+
+        This string indentifies the name of the vulnerability checked by the plugin
+    """
     description: str
+    """Description
+
+        This field contains a decription of the vulnerability discovered by the plugin
+    """
     cve: str
+    """CVE
+
+        This field contains the CVE ID for the vulnerability checked by the plugin
+    """
     reference: str
+    """Reference
+
+        This field contains urls for useful references about the plugin and the vulnerability
+    """
     cvss: float
+    """CVSS
+
+        CVSSv3 score of the vulnerability
+    """
     severity: str
+    """Vulnerability Severity
+
+        Severity of the given vulnerability, based on CVSSv3 score. 
+    """
     remediation: str
+    """Possible Remediation
+
+        This field contains advices about remediations options for the given vulnerability. 
+    """
     # TODO tags?
 
 
     def __init__(self, plugin_content: dict):
+        """Class constructor
+
+        Attributes:
+           plugin_content -- dict containing data parsed from the YAML file
+        """
         try:
             self.id   = plugin_content["id"]
             test_list = plugin_content["tests"]
@@ -49,14 +98,20 @@ class Plugin:
 
 
     def __intialize_opt_info(self, plugin_content: dict):
+        """Initialize optional informations. If set them only if they are available
+
+        Attributes:
+           plugin_content -- dict containing data parsed from the YAML file"""
         for info in ["name", "cve", "cvss", "author", "description", "severity", "reference", "remediation"]:
             if info in plugin_content:
                 setattr(self, info, plugin_content[info])
 
 
     def get_distribution_matcher(self) -> str:
+        """Get the Ditribution Matcher"""
         return self.distribution_matcher
 
 
     def get_tests(self) -> list[Test]:
+        """Get the list of Tests"""
         return self.tests

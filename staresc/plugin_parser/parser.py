@@ -5,20 +5,56 @@ from staresc.exceptions import StarescPluginError
 # parent class of matcher and extractor
 # it represents a parser with its rule
 class Parser:
+    """Parser is the class handling the content of the plugin's tests
+
+    High level object that represents a parser that implements the method parse() used to parse the result of a Command (see the class Test).
+    This class is extended when a new type of parser is implemented
+    """
 
     ALLOWED_PARTS = [ "stdout", "stderr" ]
-    ALLOWED_RULES = [ "regex", "word" ]
-    ALLOWED_CONDS = [ "and", "or" ]
-    ALLOWED_INV_MATCH = [True, False]
+    """Allowed Parts 
 
-    # rule_type can be "regex" or "word" for matching the command outputs
+    list of valid values for the field Parts 
+    """
+    ALLOWED_RULES = [ "regex", "word" ]
+    """Allowed Rules
+
+    list of valid values for the field Rules 
+    """
+    ALLOWED_CONDS = [ "and", "or" ]
+    """Allowed Conditions 
+
+    list of valid values for the field Condition
+    """
+
+    ALLOWED_INV_MATCH = [True, False]
+    """Allowed Invert Match 
+
+    list of valid values for the field Invert Match 
+    """
+
     rule_type: str
-    # rules
+    """Rule Type 
+
+    type of rule applied by the parser, current supported rule types are defined in Allowed Rules
+    """
     rules: list[str]
-    # stdout or stderr or all
+    """Rules 
+
+    list of rules that the parser checks
+    """
     parts: list[str]
-    # and/or conditions
+    """Parts 
+
+    list of parts of the result on which the parser checks the given rules, current supported parts are defined in Allowed Parts
+    """
     condition: str
+    """Condition 
+
+    condition applied to join the results of the checks of the rules.
+    An "and" value implies that all the rules checks have to return true meanwhile,
+    with an "or" value, just one rules TODO finish
+    """
     # True: invert the result of matcher, False: don't invert
     invert_match: bool
     
