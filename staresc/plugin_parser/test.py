@@ -70,7 +70,7 @@ class Test:
         The first parser receieves as input the result of the Command and a boolean condition set to True.
 
         Attributes:
-           result -- dict containing the result of the Command, it has the following format: {"stdout": command_stdout, "stderr": command_stderr}"""
+           result -- dict containing the result of the command executed on the target machine, it has the following format: {"stdout": command_stdout, "stderr": command_stderr}"""
         piped_result: dict[str, str] = result
         piped_boolean_result: bool = True                           #TODO handle not only and condition in piped matchers
 
