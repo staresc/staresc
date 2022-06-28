@@ -1,4 +1,3 @@
-import os
 from queue import Queue
 
 from staresc.exporter.handlers import StarescHandler
@@ -8,11 +7,6 @@ class StarescExporter():
 
     runs_results: Queue[Output] = Queue()
     handlers: list[StarescHandler] = []
-
-    def __init__(self, dir: str = './export/'):
-        self.output_directory = dir
-        if not os.path.exists(dir):
-            os.makedirs(dir)
 
     @classmethod
     def register_handler(cls, handler: StarescHandler):
