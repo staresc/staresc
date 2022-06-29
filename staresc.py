@@ -13,6 +13,7 @@ import os
 from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler
 from staresc.log import StarescLogger
 from staresc.core import StarescRunner
+from staresc import VERSION
 
 # Configure logger
 logger = StarescLogger()
@@ -20,7 +21,7 @@ logger = StarescLogger()
 ##################################### CLI #######################################
 
 def cliparse() -> argparse.Namespace:
-    parser = argparse.ArgumentParser( prog='staresc', description='Make SSH/TELNET PTs great again!', epilog=' ', formatter_class=argparse.RawTextHelpFormatter )
+    parser = argparse.ArgumentParser( prog='staresc', description='Make SSH/TELNET PTs great again!', epilog=' ', formatter_class=argparse.RawTextHelpFormatter )    
     parser.add_argument( '-d', '--debug', action='store_true', default=False, help='increase output verbosity to debug mode' )
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
     
@@ -33,13 +34,14 @@ def cliparse() -> argparse.Namespace:
     outputs.add_argument_group(single_outputs)
     outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
     
-    targets = parser.add_mutually_exclusive_group(required=True)
-    targets.add_argument('-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
+    main_group = parser.add_mutually_exclusive_group(required=True)
+    main_group.add_argument('-v', '--version', action='store_true', default=False, help='print version and exit')
+    main_group.add_argument('-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
     connection_help  = "schema://user:auth@host:port/root_usr:root_passwd\n"
     connection_help += "auth can be either a password or a path to ssh\n"
     connection_help += "privkey, specified as \\\\path\\\\to\\\\privkey"
-    targets.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
+    main_group.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
     return parser.parse_args()
 
 
@@ -75,6 +77,12 @@ def banner() -> str:
 def main():
     
     args = cliparse()
+    
+    if args.version:
+        print(f"Staresc Version: {VERSION}\n")
+        return
+
+    print("\033[1m\033[1;31m" + banner() + "\033[0m")
 
     if args.debug:
         logger.setLevelDebug()
@@ -99,7 +107,6 @@ def main():
     StarescExporter.register_handler(StarescStdoutHandler(""))
 
     if args.output_all:
-        
         full_path = parsepath(args.output_all)
         StarescExporter.register_handler(StarescCSVHandler(os.path.join(full_path + ".csv")))
         StarescExporter.register_handler(StarescXLSXHandler(os.path.join(full_path + ".xlsx")))
@@ -114,7 +121,6 @@ def main():
     if args.output_json:
         StarescExporter.register_handler(StarescJSONHandler(args.output_json))
 
-    print("\033[1m\033[1;31m" + banner() + "\033[0m")
     sr = StarescRunner(logger)
     
     plugins = sr.parse_plugins(plugins_dir)
