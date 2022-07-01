@@ -35,6 +35,7 @@ def cliparse() -> argparse.Namespace:
     outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
     
     main_group = parser.add_mutually_exclusive_group(required=True)
+    main_group.add_argument('-t', '--test', action='store_true', default=False, help='test staresc integrity')
     main_group.add_argument('-v', '--version', action='store_true', default=False, help='print version and exit')
     main_group.add_argument('-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
@@ -59,6 +60,31 @@ def parsepath(p:str) -> str:
         full_path = os.path.join(full_path, "results")
 
     return full_path
+
+
+def starttest():
+    import unittest, threading, time
+    import staresc.test as test
+
+    suite = unittest.TestSuite()
+    [ suite.addTest(test.StarescTests(t)) for t in test.StarescTests.TESTLIST ]
+
+    t_args = {
+        "target" : test.start_server,
+        "args"   : ("127.0.0.1", 9001),
+        "daemon" : True,
+    }
+    threading.Thread(**t_args).start()
+    
+    logger.info("Starting tests")
+    time.sleep(1)
+    
+    try:
+        unittest.TextTestRunner().run(suite)
+        logger.info("End of tests")
+    
+    except Exception as e:
+        logger.error(e)
 
 
 def banner() -> str:
@@ -89,6 +115,11 @@ def main():
         logger.debug("Logger set to debug mode")
     else:
         logger.setLevelInfo()
+
+    if args.test:
+        starttest()
+        return
+
 
     if args.file:
         f = open(args.file, 'r')
