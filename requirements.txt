@@ -1,3 +1,4 @@
 paramiko
 yaml
 xlsxwriter
+tabulate
