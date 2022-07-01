@@ -28,7 +28,9 @@ COMMAND_ANSWER = [ "whoami" , "user" ]
 class StarescTests(unittest.TestCase):
 
     TESTLIST = [
-        "test_unreachable_target"
+        "test_unreachable_target",
+        "test_connection",
+        "test_wrong_credentials",
     ]
 
     def test_unreachable_target(self):

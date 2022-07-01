@@ -41,20 +41,32 @@ class StarescTestSSHServer(paramiko.server.ServerInterface):
 
 # threading.Thread(target=start_server, args=("127.0.0.1", 9001), daemon=True).start()
 def start_server(bind: str, port: int):
-    print("server started")
     host_key = paramiko.RSAKey.generate(2048)
-    ctx = StarescTestSSHServer()  # create ServerInterface context object
-    sock = socket.socket()  # Create socket object
+    # create ServerInterface context object
+    ctx = StarescTestSSHServer()
+    # Create socket object
+    sock = socket.socket()
+    # bind socket to specific Port
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((bind, port))  # bind socket to specific Port
-    sock.listen(100)  # Listen for TCP connections
+    sock.bind((bind, port))
+    # Listen for TCP connections
+    sock.listen(100)
 
     while True:
-        client, _ = sock.accept()  # accept TCP socket connection
+        # accept TCP socket connection
+        client, _ = sock.accept()
         server = paramiko.Transport(client)
-        server.add_server_key(host_key)  # Setup key
-        server.start_server(server=ctx)  # SSH start_server
-        channel = server.accept(30)  # Accept Auth requests
+        # Setup key
+        server.add_server_key(host_key)
+        # SSH start_server
+        server.start_server(server=ctx)
+        # Accept Auth requests
+        channel = server.accept(30)
         if channel:
-            channel.event.wait(1)  # but I'm not sure what it does actually
+            # But I'm not sure what it does actually
+            channel.event.wait(1)
             channel.close()
+
+
+if __name__ == "__main__":
+    start_server("127.0.0.1", 9001)
