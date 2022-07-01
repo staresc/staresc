@@ -63,7 +63,7 @@ def parsepath(p:str) -> str:
 
 
 def starttest():
-    import unittest, threading
+    import unittest, threading, time
     import staresc.test as test
 
     suite = unittest.TestSuite()
@@ -76,8 +76,15 @@ def starttest():
     }
     threading.Thread(**t_args).start()
     
-    unittest.TextTestRunner().run(suite)
-    return
+    logger.info("Starting tests")
+    time.sleep(1)
+    
+    try:
+        unittest.TextTestRunner().run(suite)
+        logger.info("End of tests")
+    
+    except Exception as e:
+        logger.error(e)
 
 
 def banner() -> str:
