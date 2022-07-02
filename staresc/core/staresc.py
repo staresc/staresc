@@ -100,6 +100,11 @@ class Staresc():
         # Run all commands and return the output
         idx = 0                             # index of the text being run
 
+        if plugin.match_condition == 'and':
+            plugin_output.set_vuln_found(True)
+        elif plugin.match_condition == 'or':
+            plugin_output.set_vuln_found(False)
+
         for test in plugin.get_tests():
             cmd = test.get_command()
             # Try to use absolute paths for the command
@@ -117,8 +122,11 @@ class Staresc():
                 plugin_output.add_test_success(positive_test)
                 plugin_output.add_test_result_parsed(stdout=parsed_result["stdout"], stderr=parsed_result["stderr"] )
                 plugin_output.set_parsed(True)
-                if positive_test:
+                if positive_test and plugin.match_condition == 'or':
                     plugin_output.set_vuln_found(True)
+                    break
+                elif not positive_test and plugin.match_condition == 'and':
+                    plugin_output.set_vuln_found(False)
                     break
 
             except StarescCommandError as e:

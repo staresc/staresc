@@ -1,2 +1,4 @@
 #!/usr/bin/python
-pass
+
+
+VERSION = "v1.0-dev"

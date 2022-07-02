@@ -6,6 +6,9 @@ class Plugin:
 
     high level object that represents a plugin, with its data and functionalities
     """
+
+    ALLOWED_MATCH_CONDS = [ "and", "or" ]
+
     # mandatory fields
     tests: list[Test]
     """List of Tests 
@@ -23,6 +26,7 @@ class Plugin:
 
         This field contains a regexp that identifies the target OSs supported by the plugin
     """
+    match_condition: str
     # optional plugin info
     author: str
     """Author
@@ -66,6 +70,20 @@ class Plugin:
     """
     # TODO tags?
 
+    @staticmethod
+    def __get_condition(d: dict) -> str:
+        try:
+            selected = d["match_condition"]
+
+        except KeyError:
+            return "and"
+
+        if selected in Plugin.ALLOWED_MATCH_CONDS:
+            return selected
+        else:
+            msg = f'Invalid condition {selected}'
+            raise StarescPluginError(msg)
+
 
     def __init__(self, plugin_content: dict):
         """Class constructor
@@ -75,6 +93,7 @@ class Plugin:
         """
         try:
             self.id   = plugin_content["id"]
+            self.match_condition = Plugin.__get_condition(plugin_content)
             test_list = plugin_content["tests"]
 
         except KeyError:

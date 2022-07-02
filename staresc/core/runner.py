@@ -55,8 +55,8 @@ class StarescRunner:
                 StarescExporter.import_output(to_append)
 
 
-    def run(self, targets: list[str], plugins: list[Plugin], pubkey: bool):
-        """Actual runner for the whole program using 5 concurrent threads"""
+    def run(self, targets: list[str], plugins: list[Plugin]):
+    """Actual runner for the whole program using 5 concurrent threads"""
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
