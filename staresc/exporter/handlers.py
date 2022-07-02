@@ -9,6 +9,10 @@ from staresc.output import Output
 from staresc.connection import Connection
 
 class StarescHandler:
+    """Generic handler
+    
+    This is a generic handler for StarescExporter
+    """
 
     out: str
 
@@ -16,9 +20,21 @@ class StarescHandler:
         self.out = out
 
     def import_handler(self, o: Output):
+        """Import Handler
+        
+        This method is called on the hadler when a new output is added to the 
+        queue. Each handler can decide to either do nothing or perform special
+        operations, such as the StarescStdoutHandler, which prints the 
+        vulnerabilities when discovered in the Output
+        """
         pass
 
     def export_handler(self, outputs: list[Output], outfile: str):
+        """Export Handler
+        
+        This method is called on the hadler when the execution is over and the
+        whole queue is converted to a list.
+        """
         pass
 
 

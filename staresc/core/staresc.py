@@ -7,12 +7,25 @@ from staresc.output import Output
 from staresc.exceptions import StarescCommandError, StarescConnectionStringError
 
 class Staresc():
+    """Main component
+    
+    This is the main component, it is responsible for running scans on a single 
+    target returning an output
+    """
 
     connection: Connection
     distro: str
     binpath: list
 
     def __init__(self, connection_string: str) -> None:
+        """Init the component
+
+        Attributes:
+            connection_string -- The connection string
+
+        Raises:
+            StarescConnectionStringError -- when connection string is not valid
+        """
 
         # Check if connection schema is valid
         if not Connection.is_connection_string(connection_string):
@@ -30,6 +43,11 @@ class Staresc():
 
 
     def prepare(self) -> None:
+        """Prepare the execution 
+        
+        It connects to the client, gets os info and caches all the binaries 
+        in the system PATH.
+        """
         self.connection.connect()
         self.__populate_binpath()
         self.__get_os_info()
@@ -54,6 +72,7 @@ class Staresc():
 
 
     def elevate(self) -> bool:
+        """Elevate the connection privileges using the underlying connection"""
         return self.connection.elevate()
 
 
@@ -73,6 +92,7 @@ class Staresc():
 
 
     def do_check(self, plugin: Plugin) -> Output:
+        """Performs the actual chercks"""
         if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
             return None
 

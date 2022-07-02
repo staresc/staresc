@@ -3,20 +3,33 @@ from typing import Tuple
 
 from staresc.plugin_parser import Parser
 
-# class that represents an extractor, it is a parser that implements the method extract
 class Extractor(Parser):
+    """Extractor is the class representing an extractor.
+
+    The parse() method of the extractor extracts part of the command result using the given rules.
+    This is a subclass of Parser.
+    """
 
     def __init__(self, parser_content: dict):
+        """Class constructor
+
+        Attributes:
+           parser_content -- dict containing data of the given parser read from the YAML file
+        """
         super().__init__(parser_content)
 
 
     def __extract_regex(self, parts_to_check, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
-        # TODO return whole text or only the part that matches the regex
+        """From the given parts of the command result, extract the regexes of the rules
+
+        Attributes:
+           parts_to_check -- list of strings that identifies which part of the output to check
+           result -- output of the command run on the target machine
+        """
         extracted_regex = {"stdout": "", "stderr": "" }
         is_extracted: bool = False
         for p in parts_to_check:
             tmp_ext = re.search(self.rules[0], result[p])
-            # TODO how to handle multiple matches?
             if tmp_ext:
                 is_extracted = True
                 # extract the part that matches the regex (the first one)
@@ -24,8 +37,13 @@ class Extractor(Parser):
         return (is_extracted, extracted_regex)
 
 
-    # TODO do we need this method?
     def __extract_word(self, parts_to_check, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
+        """From the given parts of the command result, extract the strings of the rules
+
+        Attributes:
+           parts_to_check -- list of strings that identifies which part of the output to check
+           result -- output of the command run on the target machine
+        """
         extracted_words = {"stdout": "", "stderr": "" }
         is_extracted: bool = False
         for p in parts_to_check:
@@ -34,16 +52,17 @@ class Extractor(Parser):
                 extracted_words[p] += self.rules[0]
         return (is_extracted, extracted_words)
     
-    # Method that return a dict with the same shape of result one (see 'result of the command' )
-    # it search the given word or regex on result (stdin, stdout and stderr) and return a result with the content it found
-    # eg: result: {stdin: "hello", stdout: "hello how", stderr: "who is "}, regex to match: ".ho" --> ret: {stdin: "", stdout: " ho", stderr: "who"}
     def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
+        """Method used to parse the result of a command and to check if the vuln is found.
+        In this class, this method extract part of the result using the rules and return them.
+        The boolean part of the return value is set to true if something is extracted, false otherwise.
+
+        Attributes:
+            result -- dict containing the result of the command executed on the target machine, it has the following format: {"stdout": command_stdout, "stderr": command_stderr}
+        """
         # Not global and centralized enough
         MATCHER_TO_FUNC = {
             "regex" : self.__extract_regex,
             "word"  : self.__extract_word
         }
-        # TODO static centralized way to save possible values for parts
-        # VALE: didn't understand, but "all" logic implemented in parent class
-        # parts_to_check = self.parts
         return MATCHER_TO_FUNC[self.rule_type](self.parts, result)

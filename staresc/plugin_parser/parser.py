@@ -5,25 +5,65 @@ from staresc.exceptions import StarescPluginError
 # parent class of matcher and extractor
 # it represents a parser with its rule
 class Parser:
+    """Parser is the class handling the content of the plugin's tests
+
+    High level object that represents a parser that implements the method parse() used to parse the result of a Command (see the class Test).
+    This class is extended when a new type of parser is implemented
+    """
 
     ALLOWED_PARTS = [ "stdout", "stderr" ]
-    ALLOWED_RULES = [ "regex", "word" ]
-    ALLOWED_CONDS = [ "and", "or" ]
-    ALLOWED_INV_MATCH = [True, False]
+    """Allowed Parts 
 
-    # rule_type can be "regex" or "word" for matching the command outputs
+    list of valid values for the field Parts 
+    """
+    ALLOWED_RULES = [ "regex", "word" ]
+    """Allowed Rules
+
+    list of valid values for the field Rules 
+    """
+    ALLOWED_CONDS = [ "and", "or" ]
+    """Allowed Conditions 
+
+    list of valid values for the field Condition
+    """
+
+    ALLOWED_INV_MATCH = [True, False]
+    """Allowed Invert Match 
+
+    list of valid values for the field Invert Match 
+    """
+
     rule_type: str
-    # rules
+    """Rule Type 
+
+    type of rule applied by the parser, current supported rule types are defined in Allowed Rules
+    """
     rules: list[str]
-    # stdout or stderr or all
+    """Rules 
+
+    list of rules that the parser checks
+    """
     parts: list[str]
-    # and/or conditions
+    """Parts 
+
+    list of parts of the result on which the parser checks the given rules, current supported parts are defined in Allowed Parts
+    """
     condition: str
+    """Condition 
+
+    condition applied to join the results of the checks of the rules.
+    An "and" value implies that, to return a true value for this parser, all the rules checks have to return true, meanwhile,
+    an "or" value implies that just one rule have to return true.
+    """
     # True: invert the result of matcher, False: don't invert
     invert_match: bool
     
     @staticmethod
     def __get_part(d: dict) -> list[str]:
+        """Get the list of parts on which apply the checks. This static method is used to initialize the field parts
+
+        Attributes:
+           d -- dict containing data of the parser read from the YAML file"""
         try:
             selected = d["part"]
 
@@ -39,6 +79,10 @@ class Parser:
 
     @staticmethod
     def __get_rule_type(d: dict) -> str:
+        """Get the value for the field rule_type
+
+        Attributes:
+           d -- dict containing data of the parser read from the YAML file"""
         try:
             selected = d["rule_type"]
         
@@ -55,6 +99,10 @@ class Parser:
 
     @staticmethod
     def __get_condition(d: dict) -> str:
+        """Get the value for the field condition
+
+        Attributes:
+           d -- dict containing data of the parser read from the YAML file"""
         try:
             selected = d["condition"]
 
@@ -70,6 +118,10 @@ class Parser:
 
     @staticmethod
     def __get_rules(d: dict) -> list:
+        """Get the list of rules to check. This static method is used to initialize the field rules
+
+        Attributes:
+           d -- dict containing data of the parser read from the YAML file"""
         try:
             selected = d["rules"]
         
@@ -86,6 +138,10 @@ class Parser:
 
     @staticmethod
     def __get_invert_match(d: dict) -> bool:
+        """Get the value for the field invert_match
+
+        Attributes:
+           d -- dict containing data of the parser read from the YAML file"""
         try:
             selected = d["invert_match"]
         
@@ -100,6 +156,11 @@ class Parser:
             
 
     def __init__(self, parser_content: dict):
+        """Class constructor
+
+        Attributes:
+           parser_content -- dict containing data of the given parser read from the YAML file
+        """
         # TODO user can specify more parts in yaml file. VERY LOW PRIORITY!!
         self.parts        = self.__get_part(parser_content)
         self.rule_type    = self.__get_rule_type(parser_content)
@@ -109,4 +170,9 @@ class Parser:
 
 
     def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
+        """Method used to parse the result of a command and to check if the vuln is found
+
+        Attributes:
+            result -- dict containing the result of the command executed on the target machine, it has the following format: {"stdout": command_stdout, "stderr": command_stderr}
+        """
         pass
