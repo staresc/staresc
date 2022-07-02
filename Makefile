@@ -21,11 +21,8 @@ uninstall:
 	rm -rf ${prefix}/opt/${pkgname}
 	rm -f  ${prefix}/usr/bin/${pkgname}
 
-start-docker:
-	docker-compose --file ./test/docker/docker-compose.yaml up -d --build
-
-stop-docker:
-	docker-compose --file ./test/docker/docker-compose.yaml down
+documentation:
+	pdoc -o docs -d google --logo-link "https://static.thenounproject.com/png/400559-200.png" staresc
 
 clean:
 	rm -rf pkg src *tar.gz *zst aur
