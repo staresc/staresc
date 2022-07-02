@@ -11,7 +11,10 @@ from staresc.plugin_parser import Plugin
 class StarescRunner:
     """StarescRunner is a factory for Staresc objects
     
-    This class is responsible for parsing connection strings
+    This class is responsible for parsing connection strings, parse plugins,
+    istance Staresc objects and run concurrent scans on targets (1 thread per 
+    target). Finally, it calls the exporters associated with the StarescExporter
+    class to produce the requested output. 
     """
 
     targets: list[str]
@@ -22,6 +25,11 @@ class StarescRunner:
 
 
     def scan(self, connection_string: str, plugins: list[Plugin]) -> None:
+        """Launch the scan
+
+        Istance Staresc with connection string, prepare and run plugins commands
+        on targets.
+        """
         
         try:
             staresc = Staresc(connection_string)
@@ -48,6 +56,7 @@ class StarescRunner:
 
 
     def run(self, targets: list[str], plugins: list[Plugin], pubkey: bool):
+        """Actual runner for the whole program using 5 concurrent threads"""
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
@@ -63,6 +72,7 @@ class StarescRunner:
 
     @staticmethod
     def parse_plugins(plugins_dir: str = None) -> list[Plugin]:
+        """Static method to parse plugins"""
         plugins = []
 
         if not plugins_dir.startswith('/'):
