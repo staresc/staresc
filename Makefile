@@ -9,20 +9,20 @@ update:
 	git pull --ff-only origin main
 
 install:
-	mkdir -p ${prefix}/opt/${pkgname}/${modulename}
-	mkdir -p ${prefix}/opt/${pkgname}/plugins
-	cp -r ${modulename}/* ${prefix}/opt/${pkgname}/${modulename}
-	cp -r plugins/* ${prefix}/opt/${pkgname}/plugins
-	install -Dm644 ./${pkgname}.py ${prefix}/opt/${pkgname}/${pkgname}.py
-	echo '#!/bin/sh\n/usr/bin/python3 /opt/staresc/staresc.py $$@' > ${prefix}/usr/bin/${pkgname}
-	chmod 755 ${prefix}/usr/bin/${pkgname}
+	mkdir -p "${prefix}/opt/${pkgname}/${modulename}"
+	mkdir -p "${prefix}/opt/${pkgname}/plugins"
+	mkdir -p "${prefix}/usr/bin"
+
+	cp -r "${modulename}"/* "${prefix}/opt/${pkgname}/${modulename}"
+	cp -r "plugins/"* "${prefix}/opt/${pkgname}/plugins"
+	install -Dm644 "./${pkgname}.py" "${prefix}/opt/${pkgname}/${pkgname}.py"
+
+	echo '#!/bin/sh\n/usr/bin/python3 /opt/${pkgname}/${pkgname}.py $$@' > "${prefix}/usr/bin/${pkgname}"
+	chmod 755 "${prefix}/usr/bin/${pkgname}"
 
 uninstall:
 	rm -rf ${prefix}/opt/${pkgname}
 	rm -f  ${prefix}/usr/bin/${pkgname}
-
-documentation:
-	pdoc -o docs -d google --logo-link "https://static.thenounproject.com/png/400559-200.png" staresc
 
 clean:
 	rm -rf pkg src *tar.gz *zst aur

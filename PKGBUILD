@@ -8,7 +8,7 @@ arch=( 'x86_64' )
 url="https://github.com/staresc/staresc"
 license=( 'GPLv3' )
 depends=( 'python' 'python-paramiko' 'python-yaml' 'python-xlsxwriter' 'python-tabulate')
-source=("https://github.com/${pkgname}/${pkgname}/archive/refs/tags/v${_version}.tar.gz")
+source=("$pkgname-$_version.tar.gz::${url}/archive/refs/tags/v${_version}.tar.gz")
 sha256sums=('SKIP')
 
 package() {
