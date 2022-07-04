@@ -8,102 +8,118 @@ I'm @5amu, welcome!
 """
 
 import argparse
-import logging
 import os
-import json
-import concurrent.futures
-from datetime import datetime
 
-# debug
-import traceback
-
-from lib.connection import Connection
-from lib.core import Staresc
-
+from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler
+from staresc.log import StarescLogger
+from staresc.core import StarescRunner
+from staresc import VERSION
 
 # Configure logger
-logging.basicConfig(format='[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger(__name__)
-
+logger = StarescLogger()
 
 ##################################### CLI #######################################
 
 def cliparse() -> argparse.Namespace:
-    parser = argparse.ArgumentParser( prog='staresc', description='Make SSH/TELNET PTs great again!', epilog=' ', formatter_class=argparse.RawTextHelpFormatter )
-    parser.add_argument( '-v', '--verbose', action='count', default=0, help='increase output verbosity (-vv for debug)' )
-    parser.add_argument( '-d', '--dontparse', action='store_true', default=False, help='do not parse as soon as the commands are executed' )
-    parser.add_argument( '-P', '--pubkey', action='store_true', default=False, help='specify if a pubkey is provided' )
+    parser = argparse.ArgumentParser( prog='staresc', description='Make SSH/TELNET PTs great again!', epilog=' ', formatter_class=argparse.RawTextHelpFormatter )    
+    parser.add_argument( '-d', '--debug', action='store_true', default=False, help='increase output verbosity to debug mode' )
     parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
-    parser.add_argument( '-r', '--results', action='store', metavar='R', default='', help='results to be parsed (if already existing)' )
-    targets = parser.add_mutually_exclusive_group(required=True)
-    targets.add_argument( '-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
+    
+    single_outputs = parser.add_argument_group()
+    single_outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
+    single_outputs.add_argument('-oxlsx', '--output-xlsx', metavar='filename', action='store', default='', help='export results on a xlsx (MS Excel) file')
+    single_outputs.add_argument('-ojson', '--output-json', metavar='filename', action='store', default='', help='export results on a json file')
+    
+    outputs = parser.add_mutually_exclusive_group(required=False)
+    outputs.add_argument_group(single_outputs)
+    outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
+    
+    main_group = parser.add_mutually_exclusive_group(required=True)
+    main_group.add_argument('-t', '--test', action='store_true', default=False, help='test staresc integrity')
+    main_group.add_argument('-v', '--version', action='store_true', default=False, help='print version and exit')
+    main_group.add_argument('-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
     connection_help  = "schema://user:auth@host:port/root_usr:root_passwd\n"
     connection_help += "auth can be either a password or a path to ssh\n"
     connection_help += "privkey, specified as \\\\path\\\\to\\\\privkey"
-    targets.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
+    main_group.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
     return parser.parse_args()
 
 
-def scan(connection_string: str, plugindir: str, to_parse: bool, elevate: bool) -> dict:
-    staresc = Staresc(connection_string)
-    staresc.prepare()
+def parsepath(p:str) -> str:
+    full_path = os.path.join(os.getcwd(), p)
 
-    history = []
-    for plugin in os.listdir(plugindir):
-        if plugin.endswith('.py'):
-            if not plugindir.startswith('/'):
-                plugindir = os.path.join(os.getcwd(), plugindir)
+    # Create directory if doesn't exist
+    if not os.path.isdir(os.path.dirname(full_path)):
+        logger.debug(f"Created directory: {full_path}")
+        os.makedirs(full_path)
 
-            pluginfile = os.path.join(plugindir, plugin)
-            logger.debug(f"Scanning {connection_string} with plugin {pluginfile} (Will be parsed: {to_parse})")
-            to_happend = staresc.do_check(pluginfile, to_parse)
-            if to_happend != None:
-                history.append(to_happend)
+    # Choose file name "results" if patter does not provide it
+    if not os.path.basename(full_path):
+        logger.debug(f"Choosing default filename: results")
+        full_path = os.path.join(full_path, "results")
 
-    return { 'staresc' : history, 'connection_string' : connection_string, 'elevated' : elevate }
+    return full_path
 
 
-def justparse(outputfile: str, plugindir: str) -> dict:
+def starttest():
+    import unittest, threading, time
+    import staresc.test as test
+
+    suite = unittest.TestSuite()
+    [ suite.addTest(test.StarescTests(t)) for t in test.StarescTests.TESTLIST ]
+
+    t_args = {
+        "target" : test.start_server,
+        "args"   : ("127.0.0.1", 9001),
+        "daemon" : True,
+    }
+    threading.Thread(**t_args).start()
     
-    f = open(outputfile, 'r')
-    to_parse = json.load(f)
-    logger.debug(f"Loaded result file: {outputfile}")
-
-    conn = to_parse['connection_string']
-    hist = to_parse['staresc']
-
-    staresc = Staresc(conn)
-
-    new_history = []
-    for result in hist:
-        for plugin in os.listdir(plugindir):
-            if plugin.endswith('.py') and result['plugin'] == plugin and not plugindir.startswith('/'):
-                plugindir = os.path.join(os.getcwd(), plugindir)
-                    
-            pluginfile = os.path.join(plugindir, plugin)
-            logger.debug(f"Analyzing {result} with plugin {pluginfile}")
-            parsed = staresc.do_offline_parsing(pluginfile, result)
-            new_history.append(parsed)
-        
-    return { 'staresc' : new_history, 'connection_string' : conn, 'elevated' : to_parse['elevated']}
+    logger.info("Starting tests")
+    time.sleep(1)
+    
+    try:
+        unittest.TextTestRunner().run(suite)
+        logger.info("End of tests")
+    
+    except Exception as e:
+        logger.error(e)
 
 
-def write(results: dict, outfile: str) -> None:
-    with open(outfile, 'x') as f:
-        json.dump(results, f)
+def banner() -> str:
+    b = " _______ _________ _______  _______  _______  _______  _______ \n"
+    b += "(  ____ \\\\__   __/(  ___  )(  ____ )(  ____ \(  ____ \(  ____ \\\n"
+    b += "| (    \/   ) (   | (   ) || (    )|| (    \/| (    \/| (    \/\n"
+    b += "| (_____    | |   | (___) || (____)|| (__    | (_____ | |      \n"
+    b += "(_____  )   | |   |  ___  ||     __)|  __)   (_____  )| |      \n"
+    b += "      ) |   | |   | (   ) || (\ (   | (            ) || |      \n"
+    b += "/\\____) |   | |   | )   ( || ) \ \__| (____/\\/\\____) || (____/\\\n"
+    b += "\_______)   )_(   |/     \||/   \__/(_______/\_______)(_______/\n"
+    b += "                                             - by 5amu & cekout\n"
+    return b
 
 
-if __name__ == '__main__':
+def main():
     
     args = cliparse()
+    
+    if args.version:
+        print(f"Staresc Version: {VERSION}\n")
+        return
 
-    if args.verbose == 1:
-        logger.setLevel(logging.DEBUG)
+    print("\033[1m\033[1;31m" + banner() + "\033[0m")
+
+    if args.debug:
+        logger.setLevelDebug()
         logger.debug("Logger set to debug mode")
     else:
-        logger.setLevel(logging.INFO)
-        logger.info("Logger set to info mode")
+        logger.setLevelInfo()
+
+    if args.test:
+        starttest()
+        return
+
 
     if args.file:
         f = open(args.file, 'r')
@@ -119,31 +135,28 @@ if __name__ == '__main__':
     else:
         plugins_dir = args.config
 
-    if args.results:
-        outfile = f"{args.results}-parsed.json"
-        results = justparse(args.results, plugins_dir)
-        write(results, outfile)
-        logger.info(f"Wrote parsed file to {outfile}")
-        exit(0)
+    StarescExporter.register_handler(StarescStdoutHandler(""))
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        futures = []
-        for target in targets:
-            futures.append(executor.submit(scan, target, plugins_dir, (not args.dontparse), args.pubkey))
-            logger.info(f"Started scan on target {target}")
+    if args.output_all:
+        full_path = parsepath(args.output_all)
+        StarescExporter.register_handler(StarescCSVHandler(os.path.join(full_path + ".csv")))
+        StarescExporter.register_handler(StarescXLSXHandler(os.path.join(full_path + ".xlsx")))
+        StarescExporter.register_handler(StarescJSONHandler(os.path.join(full_path + ".json")))
 
-        for future in concurrent.futures.as_completed(futures):
-            target = targets[futures.index(future)]
-            try:
-                dump = future.result()
-                logger.info(f"Finished scan on target {target}")
-            except Exception as e:
-                traceback.print_exc()
-                print(f"{target} generated an exception: {e}")
-            else:
-                now = datetime.now()
-                outfile = f"{now.year}-{now.month}-{now.day}-{now.hour}:{now.minute}:{now.second}-{Connection.get_hostname(target)}.json"
-                write(dump, outfile)
-                logger.info(f"Results written: {outfile}")
-             
-        
+    if args.output_csv:
+        StarescExporter.register_handler(StarescCSVHandler(args.output_csv))
+
+    if args.output_xlsx:
+        StarescExporter.register_handler(StarescXLSXHandler(args.output_xlsx))
+
+    if args.output_json:
+        StarescExporter.register_handler(StarescJSONHandler(args.output_json))
+
+    sr = StarescRunner(logger)
+    
+    plugins = sr.parse_plugins(plugins_dir)
+    sr.run(targets, plugins)
+
+
+if __name__ == '__main__':
+    main()
