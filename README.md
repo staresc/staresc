@@ -1,5 +1,6 @@
 [![Python PyInstaller Build Standalone Executable](https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml/badge.svg)](https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml)
 [![Make Documentation](https://github.com/staresc/staresc/actions/workflows/make-documentation.yml/badge.svg)](https://github.com/staresc/staresc/actions/workflows/make-documentation.yml)
+[![Unit Tests](https://github.com/staresc/staresc/actions/workflows/tests.yml/badge.svg)](https://github.com/staresc/staresc/actions/workflows/tests.yml)
 
 # staresc-ng
 
