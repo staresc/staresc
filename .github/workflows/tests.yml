@@ -1,0 +1,21 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [ "main"]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.10"
+    - name: Install dependencies
+      run: if [ -f requirements.txt ]; then python -m pip install --upgrade pip && pip install -r requirements.txt; fi
+    - name: Start Tests
+      run: python staresc.py --test
