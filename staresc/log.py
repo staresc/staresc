@@ -24,13 +24,13 @@ class StarescLogger:
     class StarescLoggingFormatter(logging.Formatter):
 
         FORMATS = {
-            DEFAULT : '[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s',
-            VULN    : '[STARESC]:[%(target)s]:[%(c)s%(severity)s%(r)s]:[%(c)s%(plugin)s%(r)s]'
+            DEFAULT : '[STARESC]:[%(target)s]:[%(levelname)s]: %(message)s',
+            VULN    : '[FINDING]:[%(target)s]:[%(c)s%(severity)s%(r)s]:[%(c)s%(plugin)s%(r)s]'
         }
 
         def format(self, record):  
             f = self.FORMATS.get(record.levelno, self.FORMATS[DEFAULT])
-            formatter = logging.Formatter(fmt=f, datefmt='%Y-%m-%d %H:%M:%S')
+            formatter = logging.Formatter(fmt=f)
             return formatter.format(record)
 
 
@@ -85,16 +85,16 @@ class StarescLogger:
         self.logger.setLevel(logging.DEBUG)
 
 
-    def info(self, msg: str):
-        self.logger.info(msg)
+    def info(self, msg: str, target:str = None):
+        self.logger.info(msg, extra={"target": target})
 
     
-    def debug(self, msg: str):
-        self.logger.debug(msg)
+    def debug(self, msg: str, target:str = None):
+        self.logger.debug(msg, extra={"target": target})
 
     
-    def error(self, msg: str):
-        self.logger.error(msg)
+    def error(self, msg: str, target:str = None):
+        self.logger.error(msg, extra={"target": target})
 
 
     def print_if_vuln(self, o: Output):
@@ -111,6 +111,5 @@ class StarescLogger:
             "c"        : SEVERITY2COLOR.get(o.plugin.severity.lower(), ""),
             "r"        : "\033[0m",
         }
-
         self.logger.vuln("", extra=e)
        

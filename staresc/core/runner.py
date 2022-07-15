@@ -6,6 +6,7 @@ from staresc.log import StarescLogger
 from staresc.core import Staresc
 from staresc.exporter import StarescExporter
 from staresc.plugin_parser import Plugin
+from staresc.connection import Connection
 
 
 class StarescRunner:
@@ -24,6 +25,14 @@ class StarescRunner:
         self.logger  = logger
 
 
+    @staticmethod
+    def __hostport(s: str) -> str:
+        """Host:Port from connection string"""
+        host = Connection.get_hostname(s)
+        port = Connection.get_port(s)
+        return f"{host}:{port}"
+
+
     def scan(self, connection_string: str, plugins: list[Plugin]) -> None:
         """Launch the scan
 
@@ -36,14 +45,14 @@ class StarescRunner:
             staresc.prepare()
 
         except Exception as e:
-            self.logger.error(f"{type(e).__name__}: {e}")
+            self.logger.error(f"{type(e).__name__}: {e}", self.__hostport(connection_string))
             return
 
         # For future reference
         # elevate = staresc.elevate()
         
         for plugin in plugins:
-            self.logger.debug(f"Scanning {connection_string} with plugin {plugin.id}")
+            self.logger.debug(f"Using plugin {plugin.id}", self.__hostport(connection_string))
             to_append = None
             try:
                 to_append = staresc.do_check(plugin)
@@ -61,11 +70,11 @@ class StarescRunner:
             futures = []
             for target in targets:
                 futures.append(executor.submit(StarescRunner.scan, self, target, plugins))
-                self.logger.debug(f"Started scan on target {target}")
+                self.logger.debug(f"Started scan", self.__hostport(target))
 
             for future in concurrent.futures.as_completed(futures):
                 target = targets[futures.index(future)]
-                self.logger.debug(f"Finished scan on target {target}")
+                self.logger.debug(f"Finished scan", self.__hostport(target))
 
         StarescExporter.export()
 
