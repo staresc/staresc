@@ -37,15 +37,8 @@ class StarescHandler:
         """
         pass
 
-
-class StarescCSVHandler(StarescHandler):
-
-    def import_handler(self, o: Output):
-        pass
-
-    def export_handler(self, outputs: list[Output], outfile: str):
-        
-        def technical_details(o: Output):
+    @staticmethod
+    def technical_details(o: Output):
             tech_details = ""
             for i in range(len(o.test_results)):
                 tech_details += f"cmd: {o.test_results[i]['stdin']}\n"
@@ -54,31 +47,41 @@ class StarescCSVHandler(StarescHandler):
                 tech_details += "\n\n\n"
             return tech_details
 
-        def complete_log(o: Output):
-            ret = []
-            for test_res in o.test_results:
-                ret.append({
-                    "stdin": test_res["stdin"],
-                    "stdout": test_res["stdout"],
-                    "stderr": test_res["stderr"],
-                })
-            return str(ret)
+    @staticmethod
+    def complete_log(o: Output):
+        ret = []
+        for test_res in o.test_results:
+            ret.append({
+                "stdin": test_res["stdin"],
+                "stdout": test_res["stdout"],
+                "stderr": test_res["stderr"],
+            })
+        return str(ret)
 
-        COLUMNS_TO_FUNC = {
-            "Host IP"            : lambda x: Connection.get_hostname(x.target.connection),
-            "Port"               : lambda x: Connection.get_port(x.target.connection),
-            "Scheme"             : lambda x: Connection.get_scheme(x.target.connection),
-            "Vulnerable"         : lambda x : x.is_vuln_found(),
-            "Any timeout"        : lambda x : any(x.get_timeouts()),
-            "CVSS score"         : lambda x : getattr(x.plugin, 'cvss', 0.0),
-            "Vulnerability name" : lambda x : getattr(x.plugin, 'name'),
-            "Description"        : lambda x : getattr(x.plugin, 'description'),
-            "Technical details"  : technical_details,
-            "Remediation"        : lambda x : getattr(x.plugin, 'remediation', ''),
-            "CVE"                : lambda x : getattr(x.plugin, 'CVE', ''),
-            "CVSS vector"        : lambda x : getattr(x.plugin, 'cvss_vector', ''),
-            "Complete log"       : complete_log,
-        }
+
+COLUMNS_TO_FUNC = {
+    "Host IP"            : lambda x: Connection.get_hostname(x.target.connection),
+    "Port"               : lambda x: Connection.get_port(x.target.connection),
+    "Scheme"             : lambda x: Connection.get_scheme(x.target.connection),
+    "Vulnerable"         : lambda x : x.is_vuln_found(),
+    "Any timeout"        : lambda x : any(x.get_timeouts()),
+    "CVSS score"         : lambda x : getattr(x.plugin, 'cvss', 0.0),
+    "Vulnerability name" : lambda x : getattr(x.plugin, 'name'),
+    "Description"        : lambda x : getattr(x.plugin, 'description'),
+    "Technical details"  : StarescHandler.technical_details,
+    "Remediation"        : lambda x : getattr(x.plugin, 'remediation', ''),
+    "CVE"                : lambda x : getattr(x.plugin, 'CVE', ''),
+    "CVSS vector"        : lambda x : getattr(x.plugin, 'cvss_vector', ''),
+    "Complete log"       : StarescHandler.complete_log,
+}
+
+
+class StarescCSVHandler(StarescHandler):
+
+    def import_handler(self, o: Output):
+        pass
+
+    def export_handler(self, outputs: list[Output], outfile: str):
         out_rows = [COLUMNS_TO_FUNC.keys()]
         
         # it works only in non multithread environment
@@ -142,41 +145,6 @@ class StarescXLSXHandler(StarescHandler):
         pass
 
     def export_handler(self, outputs: list[Output], outfile: str):
-
-        def technical_details(o: Output):
-            tech_details = ""
-            for i in range(len(o.test_results)):
-                tech_details += f"cmd: {o.test_results[i]['stdin']}\n"
-                tech_details += f"stdout: {o.test_results_parsed[i]['stdout']}\n"
-                tech_details += f"stderr: {o.test_results_parsed[i]['stderr']}\n"
-                tech_details += "\n\n\n"
-            return tech_details
-
-        def complete_log(o: Output):
-            ret = []
-            for test_res in o.test_results:
-                ret.append({
-                    "stdin": test_res["stdin"],
-                    "stdout": test_res["stdout"],
-                    "stderr": test_res["stderr"],
-                })
-            return str(ret)
-
-        COLUMNS_TO_FUNC = {
-            "Host IP": lambda x: Connection.get_hostname(x.target.connection),
-            "Port": lambda x: Connection.get_port(x.target.connection),
-            "Scheme": lambda x: Connection.get_scheme(x.target.connection),
-            "Vulnerable": lambda x: x.is_vuln_found(),
-            "Any timeout": lambda x: any(x.get_timeouts()),
-            "CVSS score": lambda x: getattr(x.plugin, 'cvss', 0.0),
-            "Vulnerability name": lambda x: getattr(x.plugin, 'name'),
-            "Description": lambda x: getattr(x.plugin, 'description'),
-            "Technical details": technical_details,
-            "Remediation": lambda x: getattr(x.plugin, 'remediation', ''),
-            "CVE": lambda x: getattr(x.plugin, 'CVE', ''),
-            "CVSS vector": lambda x: getattr(x.plugin, 'cvss_vector', ''),
-            "Complete log": complete_log,
-        }
         out_rows = [list(COLUMNS_TO_FUNC.keys())]
 
         # it works only in non multithread environment
@@ -204,31 +172,6 @@ class StarescJSONHandler(StarescHandler):
         pass
 
     def export_handler(self, outputs: list[Output], outfile: str):
-
-        def complete_log(o: Output):
-            ret = []
-            for i in range(len(o.test_results)):
-                ret.append({
-                    "stdin": o.test_results[i]['stdin'],
-                    "stdout": o.test_results[i]['stdout'],
-                    "stderr": o.test_results[i]['stderr'] or ""
-                })
-            return ret
-
-        COLUMNS_TO_FUNC = {
-            "Host IP": lambda x: Connection.get_hostname(x.target.connection),
-            "Port": lambda x: Connection.get_port(x.target.connection),
-            "Scheme": lambda x: Connection.get_scheme(x.target.connection),
-            "Vulnerable": lambda x: x.is_vuln_found(),
-            "Any timeout": lambda x: any(x.get_timeouts()),
-            "CVSS score": lambda x: getattr(x.plugin, 'cvss', 0.0),
-            "Vulnerability name": lambda x: getattr(x.plugin, 'name'),
-            "Description": lambda x: getattr(x.plugin, 'description'),
-            "Remediation": lambda x: getattr(x.plugin, 'remediation', ''),
-            "CVE": lambda x: getattr(x.plugin, 'CVE', ''),
-            "CVSS vector": lambda x: getattr(x.plugin, 'cvss_vector', ''),
-            "Complete log": complete_log,
-        }
         out_dict = []
 
         # it works only in non multithread environment
