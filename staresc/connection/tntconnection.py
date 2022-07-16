@@ -15,6 +15,7 @@ class TNTConnection(Connection):
 
     def __init__(self, connection: str) -> None:
         super().__init__(connection)
+        self.default_service_port = 23
 
 
     def connect(self) -> None:
@@ -28,7 +29,7 @@ class TNTConnection(Connection):
         """
         telnet_args = {
             'host'    : self.get_hostname(self.connection),
-            'port'    : self.get_port(self.connection),
+            'port'    : self.get_port(self.connection) or self.default_service_port,
             'timeout' : Connection.command_timeout
         }
 
