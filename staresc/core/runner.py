@@ -1,6 +1,7 @@
 import os, concurrent.futures
 
 import yaml
+from staresc.exceptions import StarescAuthenticationError, StarescCommandError, StarescPluginError
 
 from staresc.log import StarescLogger
 from staresc.core import Staresc
@@ -42,7 +43,6 @@ class StarescRunner:
         
         try:
             staresc = Staresc(connection_string)
-            staresc.prepare()
 
         except Exception as e:
             self.logger.error(f"{type(e).__name__}: {e}", self.__hostport(connection_string))
@@ -50,15 +50,20 @@ class StarescRunner:
 
         # For future reference
         # elevate = staresc.elevate()
-        
+
         for plugin in plugins:
             self.logger.debug(f"Using plugin {plugin.id}", self.__hostport(connection_string))
             to_append = None
             try:
                 to_append = staresc.do_check(plugin)
 
-            except Exception as e:
+            except (StarescAuthenticationError, StarescCommandError)  as e:
                 self.logger.error(f"{type(e).__name__}: {e}")
+            
+            except Exception as e:
+                import traceback
+                traceback.print_exc(e)
+
 
             if to_append:
                 StarescExporter.import_output(to_append)

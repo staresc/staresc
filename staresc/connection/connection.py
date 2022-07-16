@@ -88,7 +88,7 @@ class Connection():
         self.client.close()
 
 
-    def connect(self, ispubkey: bool) -> None:
+    def connect(self) -> None:
         """Interface to make the connection connect to the target"""
         pass
 
