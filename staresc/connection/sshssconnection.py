@@ -46,6 +46,7 @@ class SSHSSConnection(Connection):
         super().__init__(connection)
         self.client = paramiko.SSHClient()
         self.client.set_missing_host_key_policy(self.CompletelyIgnore)
+        self.default_service_port = 22
 
 
     @staticmethod
@@ -64,7 +65,7 @@ class SSHSSConnection(Connection):
         """
         paramiko_args = {
             'hostname' : self.get_hostname(self.connection),
-            'port'     : self.get_port(self.connection),
+            'port'     : self.get_port(self.connection) or self.default_service_port,
         }
         paramiko_args['username'], paramiko_args['password'] = self.get_credentials(self.connection)
         if '/' in paramiko_args['password']:
