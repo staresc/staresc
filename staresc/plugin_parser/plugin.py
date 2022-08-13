@@ -1,4 +1,5 @@
 from staresc.exceptions import StarescPluginError
+from staresc.log import StarescLogger
 from staresc.plugin_parser import Test
 
 class Plugin:
@@ -8,6 +9,8 @@ class Plugin:
     """
 
     ALLOWED_MATCH_CONDS = [ "and", "or" ]
+    mode: str
+    logger: StarescLogger
 
     # mandatory fields
     tests: list[Test]
@@ -85,15 +88,21 @@ class Plugin:
             raise StarescPluginError(msg)
 
 
-    def __init__(self, plugin_content: dict):
+    def __init__(self, plugin_content: dict, mode: str, logger: StarescLogger = None ):
         """Class constructor
 
         Attributes:
            plugin_content -- dict containing data parsed from the YAML file
         """
+        self.mode = mode
+        self.logger = logger
         try:
             self.id   = plugin_content["id"]
             self.match_condition = Plugin.__get_condition(plugin_content)
+            if self.mode == "test_plugin":
+                self.logger.debug(f"id: {self.id}", self.id)
+                self.logger.debug(f"match_condition: {self.match_condition}", self.id)
+
             test_list = plugin_content["tests"]
 
         except KeyError:
@@ -109,9 +118,15 @@ class Plugin:
         else:
             self.distribution_matcher = ".*"
 
+        if self.mode == "test_plugin":
+            self.logger.debug(f"distr_matcher: {self.distribution_matcher}", self.id)
+
         self.tests = []
-        for test_content in test_list:
-            self.tests.append(Test(test_content))
+        for idx, test_content in enumerate(test_list):
+            if self.mode == "test_plugin":
+                self.tests.append(Test(test_content, self.mode, self.logger, f"{self.id}.Test_{idx+1}"))
+            else:
+                self.tests.append(Test(test_content, self.mode))
 
         self.__intialize_opt_info(plugin_content)
 

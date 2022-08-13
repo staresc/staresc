@@ -1,9 +1,10 @@
 from typing import Tuple
-
 from staresc.exceptions import StarescPluginError
-
+from staresc.log import StarescLogger
 # parent class of matcher and extractor
 # it represents a parser with its rule
+
+
 class Parser:
     """Parser is the class handling the content of the plugin's tests
 
@@ -32,6 +33,10 @@ class Parser:
 
     list of valid values for the field Invert Match 
     """
+
+    mode: str
+    logger: StarescLogger
+    plugin_test_string: str
 
     rule_type: str
     """Rule Type 
@@ -167,7 +172,13 @@ class Parser:
         self.condition    = self.__get_condition(parser_content)
         self.rules        = self.__get_rules(parser_content)
         self.invert_match = self.__get_invert_match(parser_content)
-
+        if self.mode == "test_plugin":
+            self.logger.debug(f"parts: {self.parts}", self.plugin_test_string)
+            self.logger.debug(f"rule_type: {self.rule_type}", self.plugin_test_string)
+            self.logger.debug(f"condition: {self.condition}", self.plugin_test_string)
+            self.logger.debug(f"invert_match: {self.invert_match}", self.plugin_test_string)
+            rules_printer = ""
+            self.logger.debug(f"rules: {self.rules}", self.plugin_test_string)
 
     def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         """Method used to parse the result of a command and to check if the vuln is found

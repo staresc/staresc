@@ -106,6 +106,8 @@ class StarescStdoutHandler(StarescHandler):
         super().__init__(out)
 
     def import_handler(self, o: Output):
+        if o.is_vuln_found():
+            self.logger.print_vuln(host = Connection.get_hostname(o.target.connection), port = Connection.get_port(o.target.connection), severity = o.plugin.severity, plugin_name = o.plugin.name)
         self.logger.print_if_vuln(o)
 
         if o.is_vuln_found():

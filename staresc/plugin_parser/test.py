@@ -1,5 +1,6 @@
 from typing import Tuple
 from staresc.exceptions import StarescPluginError
+from staresc.log import StarescLogger
 
 from staresc.plugin_parser import Parser, Matcher, Extractor
 
@@ -9,6 +10,10 @@ class Test:
 
     high level object that represents a single test run by the staresc engine using the plugin
     """
+
+    mode: str
+    logger: StarescLogger
+    plugin_test_string: str
 
     command: str
     """Command 
@@ -21,15 +26,20 @@ class Test:
     list containing the parsers (matchers/extractors) to run on the Command's results
     """
 
-    def __init__(self, test_content: dict):
+    def __init__(self, test_content: dict, mode: str, logger: StarescLogger = None, plugin_test_string: str = None):
         """Class constructor
 
         Attributes:
            test_content -- dict containing data of the given test parsed from the YAML file
         """
         self.parsers = []
+        self.mode = mode
+        self.logger = logger
+        self.plugin_test_string = plugin_test_string
         try:
             self.command = test_content["command"]
+            if self.mode == "test_plugin":
+                self.logger.debug(f"command: {self.command}", self.plugin_test_string)
             parsers      = test_content["parsers"]
 
         except KeyError:
@@ -44,9 +54,12 @@ class Test:
             "matcher"   : Matcher,
             "extractor" : Extractor,
         }
-        for parser_content in parsers:
+        for idx, parser_content in enumerate(parsers):
             try:
-                p = MAP_PARSER[parser_content["parser_type"]](parser_content)
+                if self.mode == "test_plugin":
+                    p = MAP_PARSER[parser_content["parser_type"]](parser_content, self.mode, self.logger, f"{self.plugin_test_string}.Parser_{idx+1}")
+                else:
+                    p = MAP_PARSER[parser_content["parser_type"]](parser_content, self.mode)
                 self.parsers.append(p)
 
             except KeyError:

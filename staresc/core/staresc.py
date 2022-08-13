@@ -13,8 +13,9 @@ class Staresc():
     connection: Connection
     distro: str
     binpath: list
+    mode: str
 
-    def __init__(self, connection_string: str) -> None:
+    def __init__(self, connection_string: str, mode: str = "regular") -> None:
         """Init the component
 
         Also connects the client to the server
@@ -26,20 +27,22 @@ class Staresc():
             StarescConnectionStringError -- when connection string is not valid
         """
 
-        # Check if connection schema is valid
-        if not Connection.is_connection_string(connection_string):
-            msg = f"invalid connection string: {connection_string}"
-            raise StarescConnectionStringError(msg)
+        self.mode = mode
+        if self.mode in ["regular"]:
+            # Check if connection schema is valid
+            if not Connection.is_connection_string(connection_string):
+                msg = f"invalid connection string: {connection_string}"
+                raise StarescConnectionStringError(msg)
 
-        scheme = Connection.get_scheme(connection_string)
-        
-        try:
-            self.connection: Connection = SCHEME_TO_CONNECTION[scheme](connection_string)
-            self.connection.connect()
+            scheme = Connection.get_scheme(connection_string)
 
-        except KeyError:
-            msg = f"scheme is not valid: allowed schemes are {SCHEME_TO_CONNECTION.keys()}"
-            raise StarescConnectionStringError(msg)
+            try:
+                self.connection: Connection = SCHEME_TO_CONNECTION[scheme](connection_string)
+                self.connection.connect()
+
+            except KeyError:
+                msg = f"scheme is not valid: allowed schemes are {SCHEME_TO_CONNECTION.keys()}"
+                raise StarescConnectionStringError(msg)
 
 
     def elevate(self) -> bool:

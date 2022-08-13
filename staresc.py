@@ -43,6 +43,7 @@ def cliparse() -> argparse.Namespace:
     connection_help += "auth can be either a password or a path to ssh\n"
     connection_help += "privkey, specified as \\\\path\\\\to\\\\privkey"
     main_group.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
+    main_group.add_argument('--test-plugin', action='store_true', default=False, help='test the specified plugins')
     return parser.parse_args()
 
 
@@ -103,31 +104,35 @@ def banner() -> str:
 def main():
     
     args = cliparse()
-    
+    test_plugin_mode = False
+
     if args.version:
         print(f"Staresc Version: {VERSION}\n")
         return
 
     print("\033[1m\033[1;31m" + banner() + "\033[0m")
 
-    if args.debug:
-        logger.setLevelDebug()
-        logger.debug("Logger set to debug mode")
-    else:
-        logger.setLevelInfo()
-
     if args.test:
         starttest()
         return
-
 
     if args.file:
         f = open(args.file, 'r')
         targets = f.readlines()
         logger.debug(f"Loaded file: {args.file}")
-    else:
+    elif args.connection:
         targets = [ str(args.connection) ]
         logger.debug(f"Loaded connection: {args.connection}")
+    elif args.test_plugin:
+        test_plugin_mode = True
+        args.debug = True
+        targets = ["Test Plugin"]
+
+    if args.debug:
+        logger.setLevelDebug()
+        logger.debug("Logger set to debug mode")
+    else:
+        logger.setLevelInfo()
 
     if not args.config:
         plugins_dir = os.path.dirname(os.path.realpath(__file__))
@@ -153,7 +158,8 @@ def main():
         StarescExporter.register_handler(StarescJSONHandler(args.output_json))
 
     sr = StarescRunner(logger)
-    
+    if test_plugin_mode:
+        sr.set_mode("test_plugin")
     plugins = sr.parse_plugins(plugins_dir)
     sr.run(targets, plugins)
 

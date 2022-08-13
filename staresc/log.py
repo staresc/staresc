@@ -1,7 +1,5 @@
 import logging
 
-from staresc.output import Output
-
 VULN    = logging.INFO + 1
 DEFAULT = 1000
 
@@ -97,18 +95,12 @@ class StarescLogger:
         self.logger.error(msg, extra={"target": target})
 
 
-    def print_if_vuln(self, o: Output):
-        if not o.is_vuln_found():
-            return
-
-        host = o.target.get_hostname(o.target.connection)
-        port = o.target.get_port(o.target.connection)
-
+    def print_vuln(self, host: str, port: int, severity: str, plugin_name: str):
         e = {
             "target"   : f"{host}:{port}",
-            "severity" : o.plugin.severity,
-            "plugin"   : o.plugin.name,
-            "c"        : SEVERITY2COLOR.get(o.plugin.severity.lower(), ""),
+            "severity" : severity,
+            "plugin"   : plugin_name,
+            "c"        : SEVERITY2COLOR.get(severity.lower(), ""),
             "r"        : "\033[0m",
         }
         self.logger.vuln("", extra=e)

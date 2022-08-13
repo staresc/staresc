@@ -1,6 +1,7 @@
 import re
 from typing import Tuple
 
+from staresc.log import StarescLogger
 from staresc.plugin_parser import Parser
 
 class Extractor(Parser):
@@ -10,12 +11,17 @@ class Extractor(Parser):
     This is a subclass of Parser.
     """
 
-    def __init__(self, parser_content: dict):
+    def __init__(self, parser_content: dict, mode: str, logger: StarescLogger = None, plugin_test_string: str = None):
         """Class constructor
 
         Attributes:
            parser_content -- dict containing data of the given parser read from the YAML file
         """
+        self.mode = mode
+        self.logger = logger
+        self.plugin_test_string = plugin_test_string
+        if self.mode == "test_plugin":
+            self.logger.debug(f"parser_type: extractor", self.plugin_test_string)
         super().__init__(parser_content)
 
 

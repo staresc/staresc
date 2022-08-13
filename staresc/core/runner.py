@@ -21,9 +21,11 @@ class StarescRunner:
 
     targets: list[str]
     logger:  StarescLogger
+    mode: str
 
     def __init__(self, logger: StarescLogger) -> None:
         self.logger  = logger
+        self.mode = "regular"
 
 
     @staticmethod
@@ -40,9 +42,11 @@ class StarescRunner:
         Istance Staresc with connection string, prepare and run plugins commands
         on targets.
         """
-        
         try:
-            staresc = Staresc(connection_string)
+            if self.mode == "test_plugin":
+                staresc = Staresc(connection_string, mode="test_plugin")
+            else:
+                staresc = Staresc(connection_string)
 
         except Exception as e:
             self.logger.error(f"{type(e).__name__}: {e}", self.__hostport(connection_string))
@@ -52,10 +56,16 @@ class StarescRunner:
         # elevate = staresc.elevate()
 
         for plugin in plugins:
-            self.logger.debug(f"Using plugin {plugin.id}", self.__hostport(connection_string))
+            if self.mode == "test_plugin":
+                self.logger.debug(f"testing plugin {plugin.id}")
+            else:
+                self.logger.debug(f"Using plugin {plugin.id}", self.__hostport(connection_string))
             to_append = None
             try:
-                to_append = staresc.do_check(plugin)
+                if self.mode == "test_plugin":
+                    to_append = None
+                else:
+                    to_append = staresc.do_check(plugin)
 
             except (StarescAuthenticationError, StarescCommandError)  as e:
                 self.logger.error(f"{type(e).__name__}: {e}")
@@ -71,21 +81,25 @@ class StarescRunner:
 
     def run(self, targets: list[str], plugins: list[Plugin]):
         """Actual runner for the whole program using 5 concurrent threads"""
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = []
-            for target in targets:
-                futures.append(executor.submit(StarescRunner.scan, self, target, plugins))
-                self.logger.debug(f"Started scan", self.__hostport(target))
+        if self.get_mode() == "test_plugin":
+            self.logger.debug("Started plugin test")
+            self.scan(targets[0], plugins)
+            self.logger.debug("Finished plugin test")
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                futures = []
+                for target in targets:
+                    futures.append(executor.submit(StarescRunner.scan, self, target, plugins))
+                    self.logger.debug(f"Started scan", self.__hostport(target))
 
-            for future in concurrent.futures.as_completed(futures):
-                target = targets[futures.index(future)]
-                self.logger.debug(f"Finished scan", self.__hostport(target))
+                for future in concurrent.futures.as_completed(futures):
+                    target = targets[futures.index(future)]
+                    self.logger.debug(f"Finished scan", self.__hostport(target))
 
         StarescExporter.export()
 
 
-    @staticmethod
-    def parse_plugins(plugins_dir: str = None) -> list[Plugin]:
+    def parse_plugins(self, plugins_dir: str) -> list[Plugin]:
         """Static method to parse plugins"""
         plugins = []
 
@@ -98,7 +112,13 @@ class StarescRunner:
                 f = open(plugin_filename_long, "r")
                 plugin_content = yaml.load(f.read(), Loader=yaml.Loader)
                 f.close()
-                tmp_plugin = Plugin(plugin_content)
+                tmp_plugin = Plugin(plugin_content, self.get_mode(), self.logger)
                 plugins.append(tmp_plugin)
 
         return plugins
+
+    def set_mode(self, new_mode: str) -> None:
+        self.mode = new_mode
+
+    def get_mode(self) -> str:
+        return self.mode
