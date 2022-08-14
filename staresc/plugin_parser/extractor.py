@@ -20,7 +20,7 @@ class Extractor(Parser):
         self.mode = mode
         self.logger = logger
         self.plugin_test_string = plugin_test_string
-        if self.mode == "test_plugin":
+        if self.mode == "test_plugins":
             self.logger.debug(f"parser_type: extractor", self.plugin_test_string)
         super().__init__(parser_content)
 

@@ -51,7 +51,7 @@ class Staresc():
 
 
     def do_check(self, plugin: Plugin) -> Output:
-        """Performs the actual chercks"""
+        """Performs the actual checks"""
         #if not re.findall(plugin.get_distribution_matcher(), self.osinfo):
         #    return None
 
@@ -90,4 +90,12 @@ class Staresc():
             idx += 1
 
         return plugin_output
+
+
+    def test_plugin(self, plugin: Plugin) -> None:
+        # index of the text being run
+        idx = 0
+        for test in plugin.get_tests():
+            test.test_plugin()
+            idx += 1
 

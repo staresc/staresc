@@ -43,7 +43,7 @@ def cliparse() -> argparse.Namespace:
     connection_help += "auth can be either a password or a path to ssh\n"
     connection_help += "privkey, specified as \\\\path\\\\to\\\\privkey"
     main_group.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
-    main_group.add_argument('--test-plugin', action='store_true', default=False, help='test the specified plugins')
+    main_group.add_argument('--test-plugins', action='store_true', default=False, help='test the specified plugins')
     return parser.parse_args()
 
 
@@ -104,7 +104,7 @@ def banner() -> str:
 def main():
     
     args = cliparse()
-    test_plugin_mode = False
+    test_plugins_mode = False
 
     if args.version:
         print(f"Staresc Version: {VERSION}\n")
@@ -123,10 +123,9 @@ def main():
     elif args.connection:
         targets = [ str(args.connection) ]
         logger.debug(f"Loaded connection: {args.connection}")
-    elif args.test_plugin:
-        test_plugin_mode = True
+    elif args.test_plugins:
+        test_plugins_mode = True
         args.debug = True
-        targets = ["Test Plugin"]
 
     if args.debug:
         logger.setLevelDebug()
@@ -158,10 +157,13 @@ def main():
         StarescExporter.register_handler(StarescJSONHandler(args.output_json))
 
     sr = StarescRunner(logger)
-    if test_plugin_mode:
-        sr.set_mode("test_plugin")
+    if test_plugins_mode:
+        sr.set_mode("test_plugins")
     plugins = sr.parse_plugins(plugins_dir)
-    sr.run(targets, plugins)
+    if test_plugins_mode:
+        sr.test_plugins(plugins)
+    else:
+        sr.run(targets, plugins)
 
 
 if __name__ == '__main__':

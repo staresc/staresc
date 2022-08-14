@@ -172,7 +172,7 @@ class Parser:
         self.condition    = self.__get_condition(parser_content)
         self.rules        = self.__get_rules(parser_content)
         self.invert_match = self.__get_invert_match(parser_content)
-        if self.mode == "test_plugin":
+        if self.mode == "test_plugins":
             self.logger.debug(f"parts: {self.parts}", self.plugin_test_string)
             self.logger.debug(f"rule_type: {self.rule_type}", self.plugin_test_string)
             self.logger.debug(f"condition: {self.condition}", self.plugin_test_string)

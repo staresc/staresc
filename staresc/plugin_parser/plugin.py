@@ -99,7 +99,7 @@ class Plugin:
         try:
             self.id   = plugin_content["id"]
             self.match_condition = Plugin.__get_condition(plugin_content)
-            if self.mode == "test_plugin":
+            if self.mode == "test_plugins":
                 self.logger.debug(f"id: {self.id}", self.id)
                 self.logger.debug(f"match_condition: {self.match_condition}", self.id)
 
@@ -118,17 +118,19 @@ class Plugin:
         else:
             self.distribution_matcher = ".*"
 
-        if self.mode == "test_plugin":
+        if self.mode == "test_plugins":
             self.logger.debug(f"distr_matcher: {self.distribution_matcher}", self.id)
+
+        self.__intialize_opt_info(plugin_content)
 
         self.tests = []
         for idx, test_content in enumerate(test_list):
-            if self.mode == "test_plugin":
+            if self.mode == "test_plugins":
                 self.tests.append(Test(test_content, self.mode, self.logger, f"{self.id}.Test_{idx+1}"))
             else:
                 self.tests.append(Test(test_content, self.mode))
 
-        self.__intialize_opt_info(plugin_content)
+
 
 
     def __intialize_opt_info(self, plugin_content: dict):
@@ -139,6 +141,8 @@ class Plugin:
         for info in ["name", "cve", "cvss", "author", "description", "severity", "reference", "remediation"]:
             if info in plugin_content:
                 setattr(self, info, plugin_content[info])
+                if self.mode == "test_plugins":
+                    self.logger.debug(f"{info}: {getattr(self, info)}", self.id)
 
 
     def get_distribution_matcher(self) -> str:

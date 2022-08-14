@@ -3,7 +3,7 @@ class StarescConnectionStringError(Exception):
     Exception raised if the connection string is invalid
     
     Atributes:
-        msg -- meesage to be displayed
+        msg -- message to be displayed
     """
 
     def __init__(self, msg: str) -> None:
@@ -26,7 +26,7 @@ class StarescAuthenticationError(Exception):
     """Exception raised when the authentication fails
 
     Attributes:
-        msg -- meesage to be displayed
+        msg -- message to be displayed
     """
 
     def __init__(self, msg: str):
@@ -37,7 +37,7 @@ class StarescConnectionError(Exception):
     """Exception raised when the connection fails
 
     Attributes:
-        msg -- meesage to be displayed
+        msg -- message to be displayed
     """
 
     def __init__(self, msg: str):
@@ -49,6 +49,17 @@ class StarescPluginError(Exception):
 
     Attributes:
         msg -- meesage to be displayed
+    """
+
+    def __init__(self, msg: str):
+        super().__init__(msg)
+
+
+class StarescModeError(Exception):
+    """Exception raised some functionality is used in the wrong mode
+
+    Attributes:
+        msg -- message to be displayed
     """
 
     def __init__(self, msg: str):

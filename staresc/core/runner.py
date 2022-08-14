@@ -43,10 +43,7 @@ class StarescRunner:
         on targets.
         """
         try:
-            if self.mode == "test_plugin":
-                staresc = Staresc(connection_string, mode="test_plugin")
-            else:
-                staresc = Staresc(connection_string)
+            staresc = Staresc(connection_string)
 
         except Exception as e:
             self.logger.error(f"{type(e).__name__}: {e}", self.__hostport(connection_string))
@@ -56,16 +53,10 @@ class StarescRunner:
         # elevate = staresc.elevate()
 
         for plugin in plugins:
-            if self.mode == "test_plugin":
-                self.logger.debug(f"testing plugin {plugin.id}")
-            else:
-                self.logger.debug(f"Using plugin {plugin.id}", self.__hostport(connection_string))
+            self.logger.debug(f"Using plugin {plugin.id}", self.__hostport(connection_string))
             to_append = None
             try:
-                if self.mode == "test_plugin":
-                    to_append = None
-                else:
-                    to_append = staresc.do_check(plugin)
+                to_append = staresc.do_check(plugin)
 
             except (StarescAuthenticationError, StarescCommandError)  as e:
                 self.logger.error(f"{type(e).__name__}: {e}")
@@ -73,30 +64,41 @@ class StarescRunner:
             except Exception as e:
                 import traceback
                 traceback.print_exc(e)
-
-
-            if to_append:
-                StarescExporter.import_output(to_append)
+            try:
+                if to_append:
+                    StarescExporter.import_output(to_append)
+            except Exception as e:
+                self.logger.error(f"{type(e).__name__}: {e}", self.__hostport(connection_string))
+                return
 
 
     def run(self, targets: list[str], plugins: list[Plugin]):
         """Actual runner for the whole program using 5 concurrent threads"""
-        if self.get_mode() == "test_plugin":
-            self.logger.debug("Started plugin test")
-            self.scan(targets[0], plugins)
-            self.logger.debug("Finished plugin test")
-        else:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                futures = []
-                for target in targets:
-                    futures.append(executor.submit(StarescRunner.scan, self, target, plugins))
-                    self.logger.debug(f"Started scan", self.__hostport(target))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = []
+            for target in targets:
+                futures.append(executor.submit(StarescRunner.scan, self, target, plugins))
+                self.logger.debug(f"Started scan", self.__hostport(target))
 
-                for future in concurrent.futures.as_completed(futures):
-                    target = targets[futures.index(future)]
-                    self.logger.debug(f"Finished scan", self.__hostport(target))
+            for future in concurrent.futures.as_completed(futures):
+                target = targets[futures.index(future)]
+                self.logger.debug(f"Finished scan", self.__hostport(target))
 
         StarescExporter.export()
+
+
+    def test_plugins(self, plugins: list[Plugin]):
+        self.logger.debug("Started plugins test")
+        staresc = Staresc("test_plugins", mode="test_plugins")
+        for plugin in plugins:
+            self.logger.debug(f"testing plugin {plugin.id}")
+            try:
+                staresc.test_plugin(plugin)
+            except Exception as e:
+                import traceback
+                traceback.print_exc(e)
+            self.logger.debug(f"tested plugin {plugin.id}")
+        self.logger.debug("Finished plugins test")
 
 
     def parse_plugins(self, plugins_dir: str) -> list[Plugin]:
