@@ -68,7 +68,7 @@ class Plugin:
 
         This field contains advices about remediations options for the given vulnerability. 
     """
-    # TODO tags?
+    cvss_vector: str
 
     @staticmethod
     def __get_condition(d: dict) -> str:
@@ -121,7 +121,7 @@ class Plugin:
 
         Attributes:
            plugin_content -- dict containing data parsed from the YAML file"""
-        for info in ["name", "cve", "cvss", "author", "description", "severity", "reference", "remediation"]:
+        for info in ["name", "cve", "cvss", "author", "description", "severity", "reference", "remediation", "cvss_vector"]:
             if info in plugin_content:
                 setattr(self, info, plugin_content[info])
 
