@@ -80,8 +80,10 @@ def starttest():
     time.sleep(1)
     
     try:
-        unittest.TextTestRunner().run(suite)
+        r = unittest.TextTestRunner().run(suite)
         logger.info("End of tests")
+        if not r.wasSuccessful():
+            exit(1)
     
     except Exception as e:
         logger.error(e)
