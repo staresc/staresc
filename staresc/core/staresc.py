@@ -70,12 +70,6 @@ class Staresc():
                 return b
         return s
 
-
-    def elevate(self) -> bool:
-        """Elevate the connection privileges using the underlying connection"""
-        return self.connection.elevate()
-
-
     def __get_os_info(self) -> None:
         commands = [
                 "uname -a",

@@ -38,9 +38,6 @@ class StarescRunner:
         except Exception as e:
             self.logger.error(f"{type(e).__name__}: {e}")
             return
-
-        # For future reference
-        # elevate = staresc.elevate()
         
         for plugin in plugins:
             self.logger.debug(f"Scanning {connection_string} with plugin {plugin.id}")

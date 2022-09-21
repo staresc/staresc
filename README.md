@@ -26,7 +26,7 @@ usage: staresc [-h] [-d] [-c C] [-ocsv filename] [-oxlsx filename] [-ojson filen
 Make SSH/TELNET PTs great again!
 
 positional arguments:
-  connection            schema://user:auth@host:port/root_usr:root_passwd
+  connection            schema://user:auth@host:port
                         auth can be either a password or a path to ssh
                         privkey, specified as \\path\\to\\privkey
 
