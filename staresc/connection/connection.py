@@ -33,7 +33,8 @@ class Connection():
         "|" +               # or
         "([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*\.)+[a-zA-Z]{2,}" + # Hostname
         ")" +               # host parse end
-        ":([0-9]{1,5})$"    # port
+        ":([0-9]{1,5})" +   # port
+        "/?$"               # optional trailing slash
         )
 
     command_timeout: float = 60
