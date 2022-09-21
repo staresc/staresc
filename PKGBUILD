@@ -1,7 +1,7 @@
 # Maintainer: 5amu <v.casalino@protonmail.com>
 pkgname=staresc
 pkgver=1
-pkgrel=0
+pkgrel=2
 _version="${pkgver}.${pkgrel}"
 pkgdesc="Make SSH/TNT PTs Great Again!"
 arch=( 'x86_64' )
