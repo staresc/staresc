@@ -39,7 +39,7 @@ def cliparse() -> argparse.Namespace:
     main_group.add_argument('-v', '--version', action='store_true', default=False, help='print version and exit')
     main_group.add_argument('-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
 
-    connection_help  = "schema://user:auth@host:port/root_usr:root_passwd\n"
+    connection_help  = "schema://user:auth@host:port\n"
     connection_help += "auth can be either a password or a path to ssh\n"
     connection_help += "privkey, specified as \\\\path\\\\to\\\\privkey"
     main_group.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
