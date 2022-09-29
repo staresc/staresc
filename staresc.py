@@ -9,7 +9,7 @@ I'm @5amu, welcome!
 
 import argparse
 import os
-from staresc.core.raw import Raw, RawRunner
+from staresc.core.raw import RawRunner
 
 from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler, StarescRawHandler
 from staresc.log import StarescLogger
@@ -41,10 +41,12 @@ def cliparse() -> argparse.Namespace:
     outputs.add_argument('-ojson', '--output-json', metavar='filename', action='store', default='', help='export results on a json file')
  
     rawmode_params = parser.add_argument_group()
-    rawmode_params.add_argument('--command', metavar='command', action='append', help='command to run on the targers')
-    rawmode_params.add_argument('--push', metavar='filename', action='append', help='push files to the target')
-    rawmode_params.add_argument('--pull', metavar='filename', action='append', help='pull files from the target')
+    rawmode_params.add_argument('--command', metavar='command', action='append', default=[], help='command to run on the targers')
+    rawmode_params.add_argument('--push', metavar='filename', action='append', default=[], help='push files to the target')
+    rawmode_params.add_argument('--pull', metavar='filename', action='append', default=[], help='pull files from the target')
+    rawmode_params.add_argument('--exec', metavar='file', action='store', help='equivalent to "--pull file --command ./file"')
     rawmode_params.add_argument('--no-tmp', default=False, action='store_true', help='skip creating temp folder and cd-ing into it')
+    rawmode_params.add_argument('--show', default=False, action='store_true', help='show commands output in the terminal')
 
     connection_help  = "schema://user:auth@host:port\n"
     connection_help += "auth can be either a password or a path to ssh\n"
@@ -132,14 +134,18 @@ def main():
 
     if args.file:
         f = open(args.file, 'r')
-        targets = f.readlines()
+        targets = [t.strip() for t in f.readlines()]
         logger.debug(f"Loaded file: {args.file}")
     else:
         targets = [ str(args.connection) ]
         logger.debug(f"Loaded connection: {args.connection}")
 
     if args.raw:
-        StarescExporter.register_handler(StarescRawHandler("staresc_results"))
+        if args.exec:
+            args.push.append(args.exec)
+            args.command.append('./' + os.path.basename(args.exec))
+
+        StarescExporter.register_handler(StarescRawHandler(""))
         rr = RawRunner(args, logger)
         rr.run(targets)
     else:

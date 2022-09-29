@@ -105,7 +105,7 @@ class Staresc():
             plugin_output.set_vuln_found(False)
 
         for idx, test in enumerate(plugin.get_tests()):
-            cmd = self.__get_absolute_cmd(test.get_command())
+            cmd = self._get_absolute_cmd(test.get_command())
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
                 plugin_output.add_test_result(stdin=stdin, stdout=stdout, stderr=stderr)
