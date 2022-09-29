@@ -99,11 +99,11 @@ class RawWorker:
 
         for cmd in cmd_list:
             try:
-                self.logger.info(f"[{self.connection.hostname}] Running '{cmd}'")
+                self.logger.info(f"[{self.connection.hostname}] Executing '{cmd}'")
                 cmd = self.staresc._get_absolute_cmd(cmd)
                 if self.make_temp:
                     cmd = f"cd {self.tmp} ; " + cmd
-                stdin, stdout, stderr = self.connection.run(cmd)
+                stdin, stdout, stderr = self.connection.run(cmd, timeout=None)
                 output.add_test_result(stdin, stdout, stderr)
             except StarescCommandError:
                 output.add_timeout_result(stdin=cmd)
