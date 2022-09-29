@@ -41,15 +41,11 @@ class StarescRunner:
         
         for plugin in plugins:
             self.logger.debug(f"Scanning {connection_string} with plugin {plugin.id}")
-            to_append = None
             try:
                 to_append = staresc.do_check(plugin)
-
+                StarescExporter.import_output(to_append)
             except Exception as e:
                 self.logger.error(f"{type(e).__name__}: {e}")
-
-            if to_append:
-                StarescExporter.import_output(to_append)
 
 
     def run(self, targets: list[str], plugins: list[Plugin]):

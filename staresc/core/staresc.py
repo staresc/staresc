@@ -41,7 +41,6 @@ class Staresc():
             msg = f"scheme is not valid: allowed schemes are {SCHEME_TO_CONNECTION.keys()}"
             raise StarescConnectionStringError(msg)            
 
-
     def prepare(self) -> None:
         """Prepare the execution 
         
@@ -84,6 +83,13 @@ class Staresc():
         
         self.osinfo = ' '.join(results)
 
+    @lru_cache
+    def _get_absolute_cmd(self, cmd) -> str:
+        # Try to use absolute paths for the command
+        bin  = cmd.split(' ')[0]
+        args = ' '.join(cmd.split(' ')[1:])
+        cmd  = f"{self.__which(bin)} {args}" 
+        return cmd
 
     def do_check(self, plugin: Plugin) -> Output:
         """Performs the actual chercks"""
@@ -92,19 +98,14 @@ class Staresc():
 
         plugin_output = Output(target=self.connection, plugin=plugin)
         # Run all commands and return the output
-        idx = 0                             # index of the text being run
 
         if plugin.match_condition == 'and':
             plugin_output.set_vuln_found(True)
         elif plugin.match_condition == 'or':
             plugin_output.set_vuln_found(False)
 
-        for test in plugin.get_tests():
-            cmd = test.get_command()
-            # Try to use absolute paths for the command
-            bin  = cmd.split(' ')[0]
-            args = ' '.join(cmd.split(' ')[1:])
-            cmd  = f"{self.__which(bin)} {args}" 
+        for idx, test in enumerate(plugin.get_tests()):
+            cmd = self.__get_absolute_cmd(test.get_command())
             try:
                 stdin, stdout, stderr = self.connection.run(cmd)
                 plugin_output.add_test_result(stdin=stdin, stdout=stdout, stderr=stderr)
@@ -125,6 +126,4 @@ class Staresc():
 
             except StarescCommandError as e:
                 plugin_output.add_timeout_result(stdin=cmd)
-            idx += 1
         return plugin_output
-
