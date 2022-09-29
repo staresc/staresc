@@ -55,8 +55,10 @@ class SSHConnection(Connection):
         """
 
         paramiko_args = {
-            'hostname' : self.get_hostname(self.connection),
-            'port'     : self.get_port(self.connection),
+            'hostname'      : self.get_hostname(self.connection),
+            'port'          : self.get_port(self.connection),
+            'allow_agent'   : False,
+            'look_for_keys' : False
         }
         paramiko_args['username'], paramiko_args['password'] = self.get_credentials(self.connection)
         if '/' in paramiko_args['password']:
