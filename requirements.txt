@@ -2,3 +2,4 @@ paramiko
 pyyaml
 xlsxwriter
 tabulate
+tqdm

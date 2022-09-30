@@ -9,8 +9,9 @@ I'm @5amu, welcome!
 
 import argparse
 import os
+from staresc.core.raw import RawRunner
 
-from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler
+from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler, StarescRawHandler
 from staresc.log import StarescLogger
 from staresc.core import StarescRunner
 from staresc import VERSION
@@ -23,21 +24,31 @@ logger = StarescLogger()
 def cliparse() -> argparse.Namespace:
     parser = argparse.ArgumentParser( prog='staresc', description='Make SSH/TELNET PTs great again!', epilog=' ', formatter_class=argparse.RawTextHelpFormatter )    
     parser.add_argument( '-d', '--debug', action='store_true', default=False, help='increase output verbosity to debug mode' )
-    parser.add_argument( '-c', '--config', metavar='C', action='store', default='', help='path to plugins directory' )
-    
-    single_outputs = parser.add_argument_group()
-    single_outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
-    single_outputs.add_argument('-oxlsx', '--output-xlsx', metavar='filename', action='store', default='', help='export results on a xlsx (MS Excel) file')
-    single_outputs.add_argument('-ojson', '--output-json', metavar='filename', action='store', default='', help='export results on a json file')
-    
-    outputs = parser.add_mutually_exclusive_group(required=False)
-    outputs.add_argument_group(single_outputs)
-    outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
-    
+
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument( '-p', '--plugins', metavar='dir', action='store', default='', help='path to plugins directory' )
+    mode.add_argument( '-r', '--raw', default=False, action='store_true', help='Raw mode: execute custom commands' )
+
     main_group = parser.add_mutually_exclusive_group(required=True)
     main_group.add_argument('-t', '--test', action='store_true', default=False, help='test staresc integrity')
     main_group.add_argument('-v', '--version', action='store_true', default=False, help='print version and exit')
-    main_group.add_argument('-f', '--file', metavar='F', default='', action='store', help='input file: 1 connection string per line' )
+    main_group.add_argument('-f', '--file', metavar='targets', default='', action='store', help='input file: 1 connection string per line' )
+
+    outputs = parser.add_mutually_exclusive_group(required=False)
+    outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
+    outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
+    outputs.add_argument('-oxlsx', '--output-xlsx', metavar='filename', action='store', default='', help='export results on a xlsx (MS Excel) file')
+    outputs.add_argument('-ojson', '--output-json', metavar='filename', action='store', default='', help='export results on a json file')
+ 
+    rawmode_params = parser.add_argument_group()
+    rawmode_params.add_argument('--command', metavar='command', action='append', default=[], help='command to run on the targers')
+    rawmode_params.add_argument('--push', metavar='filename', action='append', default=[], help='push files to the target')
+    rawmode_params.add_argument('--pull', metavar='filename', action='append', default=[], help='pull files from the target')
+    rawmode_params.add_argument('--exec', metavar='file', action='store', help='equivalent to "--push file --command ./file"')
+    rawmode_params.add_argument('--no-tmp', default=False, action='store_true', help='skip creating temp folder and cd-ing into it')
+    rawmode_params.add_argument('--show', default=False, action='store_true', help='show commands output in the terminal')
+    rawmode_params.add_argument('--notty', default=False, action='store_true', help='SSH only: don\'t request a TTY')
+
 
     connection_help  = "schema://user:auth@host:port\n"
     connection_help += "auth can be either a password or a path to ssh\n"
@@ -125,17 +136,27 @@ def main():
 
     if args.file:
         f = open(args.file, 'r')
-        targets = f.readlines()
+        targets = [t.strip() for t in f.readlines()]
         logger.debug(f"Loaded file: {args.file}")
     else:
         targets = [ str(args.connection) ]
         logger.debug(f"Loaded connection: {args.connection}")
 
-    if not args.config:
+    if args.raw:
+        if args.exec:
+            args.push.append(args.exec)
+            args.command.append('./' + os.path.basename(args.exec))
+
+        StarescExporter.register_handler(StarescRawHandler(""))
+        rr = RawRunner(args, logger)
+        rr.run(targets)
+        exit(0)
+    
+    if not args.plugins:
         plugins_dir = os.path.dirname(os.path.realpath(__file__))
         plugins_dir = os.path.join(plugins_dir, "plugins/")
     else:
-        plugins_dir = args.config
+        plugins_dir = args.plugins
 
     StarescExporter.register_handler(StarescStdoutHandler(""))
 
@@ -158,7 +179,6 @@ def main():
     
     plugins = sr.parse_plugins(plugins_dir)
     sr.run(targets, plugins)
-
 
 if __name__ == '__main__':
     main()
