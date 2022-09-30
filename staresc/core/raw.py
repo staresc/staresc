@@ -10,7 +10,7 @@ import tqdm
 
 class RawWorker:
 
-    def __init__(self, logger, connection_string, make_temp=True, tmp_base="/tmp", get_tty=False):
+    def __init__(self, logger, connection_string, make_temp=True, tmp_base="/tmp", get_tty=True):
         self.logger = logger
         self.staresc = Staresc(connection_string)
         self.connection = self.staresc.connection
@@ -104,7 +104,7 @@ class RawWorker:
                 cmd = self.staresc._get_absolute_cmd(cmd)
                 if self.make_temp:
                     cmd = f"cd {self.tmp} ; " + cmd
-                stdin, stdout, stderr = self.connection.run(cmd, timeout=None, get_tty=self.get_tty)
+                stdin, stdout, stderr = self.connection.run(cmd, timeout=None, get_pty=self.get_tty)
                 output.add_test_result(stdin, stdout, stderr)
             except StarescCommandError:
                 output.add_timeout_result(stdin=cmd)
@@ -136,7 +136,7 @@ class RawRunner:
         self.pull = args.pull
         self.push = args.push
         self.show = args.show
-        self.get_tty = args.tty
+        self.get_tty = not(args.notty)
 
         # If the you want to just push/pull files, disable the temp dir creation
         if len(self.commands) == 0:

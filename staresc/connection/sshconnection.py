@@ -78,7 +78,7 @@ class SSHConnection(Connection):
             raise StarescConnectionError(msg)
             
 
-    def run(self, cmd: str, timeout: float = Connection.command_timeout, bufsize: int = 4096, get_tty=False) -> Tuple[str, str, str]:
+    def run(self, cmd: str, timeout: float = Connection.command_timeout, bufsize: int = 4096, get_pty=False) -> Tuple[str, str, str]:
         """SSH implementation to run commands on the target
         
         every command opens 2 channels (stdout, stderr), which will be closed 
@@ -95,8 +95,10 @@ class SSHConnection(Connection):
 
             # Sudo usually requires a pty, but not sure if we will run commands with it, so for now it will be disabled
             # chan.get_pty(term=os.getenv('TERM', 'vt100'), width=int(os.getenv('COLUMNS', 0)), height=int(os.getenv('LINES', 0)))
+            if get_pty:
+                chan.get_pty()
 
-            chan.exec_command(cmd, get_tty=get_tty)
+            chan.exec_command(cmd)
 
         except paramiko.SSHException:
             msg = f"Couldn't open session when trying to run command: {cmd}"
