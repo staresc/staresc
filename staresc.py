@@ -44,7 +44,7 @@ def cliparse() -> argparse.Namespace:
     rawmode_params.add_argument('--command', metavar='command', action='append', default=[], help='command to run on the targers')
     rawmode_params.add_argument('--push', metavar='filename', action='append', default=[], help='push files to the target')
     rawmode_params.add_argument('--pull', metavar='filename', action='append', default=[], help='pull files from the target')
-    rawmode_params.add_argument('--exec', metavar='file', action='store', help='equivalent to "--pull file --command ./file"')
+    rawmode_params.add_argument('--exec', metavar='file', action='store', help='equivalent to "--push file --command ./file"')
     rawmode_params.add_argument('--no-tmp', default=False, action='store_true', help='skip creating temp folder and cd-ing into it')
     rawmode_params.add_argument('--show', default=False, action='store_true', help='show commands output in the terminal')
     rawmode_params.add_argument('--notty', default=False, action='store_true', help='SSH only: don\'t request a TTY')
@@ -150,34 +150,35 @@ def main():
         StarescExporter.register_handler(StarescRawHandler(""))
         rr = RawRunner(args, logger)
         rr.run(targets)
+        exit(0)
+    
+    if not args.plugins:
+        plugins_dir = os.path.dirname(os.path.realpath(__file__))
+        plugins_dir = os.path.join(plugins_dir, "plugins/")
     else:
-        if not args.plugins:
-            plugins_dir = os.path.dirname(os.path.realpath(__file__))
-            plugins_dir = os.path.join(plugins_dir, "plugins/")
-        else:
-            plugins_dir = args.plugins
+        plugins_dir = args.plugins
 
-        StarescExporter.register_handler(StarescStdoutHandler(""))
+    StarescExporter.register_handler(StarescStdoutHandler(""))
 
-        if args.output_all:
-            full_path = parsepath(args.output_all)
-            StarescExporter.register_handler(StarescCSVHandler(os.path.join(full_path + ".csv")))
-            StarescExporter.register_handler(StarescXLSXHandler(os.path.join(full_path + ".xlsx")))
-            StarescExporter.register_handler(StarescJSONHandler(os.path.join(full_path + ".json")))
+    if args.output_all:
+        full_path = parsepath(args.output_all)
+        StarescExporter.register_handler(StarescCSVHandler(os.path.join(full_path + ".csv")))
+        StarescExporter.register_handler(StarescXLSXHandler(os.path.join(full_path + ".xlsx")))
+        StarescExporter.register_handler(StarescJSONHandler(os.path.join(full_path + ".json")))
 
-        if args.output_csv:
-            StarescExporter.register_handler(StarescCSVHandler(args.output_csv))
+    if args.output_csv:
+        StarescExporter.register_handler(StarescCSVHandler(args.output_csv))
 
-        if args.output_xlsx:
-            StarescExporter.register_handler(StarescXLSXHandler(args.output_xlsx))
+    if args.output_xlsx:
+        StarescExporter.register_handler(StarescXLSXHandler(args.output_xlsx))
 
-        if args.output_json:
-            StarescExporter.register_handler(StarescJSONHandler(args.output_json))
+    if args.output_json:
+        StarescExporter.register_handler(StarescJSONHandler(args.output_json))
 
-        sr = StarescRunner(logger)
-        
-        plugins = sr.parse_plugins(plugins_dir)
-        sr.run(targets, plugins)
+    sr = StarescRunner(logger)
+    
+    plugins = sr.parse_plugins(plugins_dir)
+    sr.run(targets, plugins)
 
 if __name__ == '__main__':
     main()

@@ -65,8 +65,18 @@ class RawWorker:
 
         def callback(self, progress: int, tot: int):
             if not self.tqdm:
-                self.tqdm = tqdm.tqdm(range(tot), leave=True, disable=None, dynamic_ncols=True, desc=self.title, unit="B", unit_scale=True, unit_divisor=1024, delay=0)
-            
+                self.tqdm = tqdm.tqdm(
+                    range(tot), 
+                    leave=False, 
+                    disable=None, 
+                    dynamic_ncols=True, 
+                    desc=self.title, 
+                    unit="B", 
+                    unit_scale=True, 
+                    unit_divisor=1024, 
+                    delay=1,
+                    bar_format="{l_bar}{bar}|{n_fmt}"
+                )
             self.tqdm.update(progress-self.last)
             self.last = progress
             if progress == tot:
@@ -80,7 +90,17 @@ class RawWorker:
     def push(self, path):
         filename = os.path.basename(path)
         dest = os.path.join(self.tmp, filename)
-        title = f"{filename} -> {self.connection.hostname}"
+
+        self.logger.raw(
+            target=self.connection.hostname,
+            port=self.connection.port,
+            msg=f"Pushing {filename} to {dest}"
+        )
+
+        title = StarescLogger.progress_msg.format(
+            f"{self.connection.hostname}:{self.connection.port}",
+            f"⏫ {filename}",
+        )
         self.sftp.put(path, dest, self.ProgressBar(title).callback)
         self.sftp.chmod(dest, 0o777)
 
@@ -91,8 +111,15 @@ class RawWorker:
         dest_dir = f"staresc_{self.connection.hostname}"
         os.makedirs(dest_dir, exist_ok=True)
         dest = os.path.join(dest_dir, base_filename)
-        title = f"{base_filename} <- {self.connection.hostname}"
-
+        self.logger.raw(
+            target=self.connection.hostname,
+            port=self.connection.port,
+            msg=f"Pulling {filename} to {dest}"
+        )
+        title = StarescLogger.progress_msg.format(
+            f"{self.connection.hostname}:{self.connection.port}",
+            f"⏬ {filename}",
+        )
         self.sftp.get(path, dest, self.ProgressBar(title).callback)
 
     def exec(self, cmd_list: list[str]) -> Output:
@@ -100,7 +127,11 @@ class RawWorker:
 
         for cmd in cmd_list:
             try:
-                self.logger.info(f"[{self.connection.hostname}] Executing '{cmd}'")
+                self.logger.raw(
+                    target=self.connection.hostname,
+                    port=self.connection.port,
+                    msg=f"Executing {cmd}"
+                )
                 cmd = self.staresc._get_absolute_cmd(cmd)
                 if self.make_temp:
                     cmd = f"cd {self.tmp} ; " + cmd
@@ -119,14 +150,6 @@ class RawWorker:
             self.__sftp.close()
 
 class RawRunner:
-    """StarescRunner is a factory for Staresc objects
-    
-    This class is responsible for parsing connection strings, parse plugins,
-    istance Staresc objects and run concurrent scans on targets (1 thread per 
-    target). Finally, it calls the exporters associated with the StarescExporter
-    class to produce the requested output. 
-    """
-
     targets: list[str]
     logger:  StarescLogger
 
@@ -149,7 +172,11 @@ class RawRunner:
         """Launch the commands"""
         try:
             worker = RawWorker(self.logger, connection_string, self.make_temp, get_tty=self.get_tty)
-            self.logger.info(f"[{worker.connection.hostname}] Job started")
+            self.logger.raw(
+                target=worker.connection.hostname,
+                port=worker.connection.port,
+                msg="Job Started"
+            )
             worker.prepare()
 
             try:
@@ -161,7 +188,11 @@ class RawRunner:
                 output = worker.exec(self.commands)
                 StarescExporter.import_output(output)
                 if self.show:
-                    self.logger.info(f"[{worker.connection.hostname}][OUTPUT]:\n" + '\n'.join(e['stdout'] for e in output.test_results))
+                    self.logger.raw(
+                        target=worker.connection.hostname,
+                        port=worker.connection.port,
+                        msg='\n'.join(e['stdout'] for e in output.test_results)
+                    )
 
                 # Pull resulting files
                 for filename in self.pull:
@@ -169,7 +200,11 @@ class RawRunner:
                 
                 # Cleanup
                 worker.cleanup()
-                self.logger.info(f"[{worker.connection.hostname}] Job done")
+                self.logger.raw(
+                    target=worker.connection.hostname,
+                    port=worker.connection.port,
+                    msg="Job Done"
+                )
             
             except KeyboardInterrupt:
                 # Cleanup before exiting
@@ -181,11 +216,10 @@ class RawRunner:
             return
 
     def run(self, targets: list[str]):
-        """Actual runner for the whole program using 5 concurrent threads"""
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
-                if not (target.startswith("ssh://") or target.startswith("sshss://")):
+                if not target.startswith("ssh://"):
                     self.logger.error(f"Target skipped because it's not SSH: {target}")
                     continue
                 futures.append(executor.submit(RawRunner.launch, self, target))
@@ -195,5 +229,3 @@ class RawRunner:
                 target = targets[futures.index(future)]
                 self.logger.debug(f"Finished scan on target {target}")
         StarescExporter.export()
-
-
