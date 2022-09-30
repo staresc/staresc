@@ -129,8 +129,8 @@ class StarescLogger:
         self.logger.raw(msg, extra=e)
 
     
-    def check(self, target:str, port:str, msg:str):
+    def check(self, target:str, msg:str):
         e = {
-            "target": f"{target}:{port}",
+            "target": {target},
         }     
         self.logger.check(msg, extra=e)

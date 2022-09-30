@@ -1,4 +1,6 @@
 import concurrent.futures
+import platform
+import os
 
 
 from staresc.log import StarescLogger
@@ -18,18 +20,24 @@ class Checker:
             s.prepare()
 
         except StarescAuthenticationError:
-            self.logger.check(target=s.connection.hostname,port=s.connection.port,msg="Wrong credentials")
+            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Wrong credentials")
             return
 
         except StarescConnectionError:
-            self.logger.check(target=s.connection.hostname,port=s.connection.port,msg="Not reachable")
+            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Not reachable")
             return
 
         except StarescConnectionStringError:
-            self.logger.check(target=s.connection.hostname,port=s.connection.port,msg="Incorrect connection string")
+            parameter = "-n" if platform.system().lower() == "windows" else "-c"
+            ip = target
+            exit_code = os.system(f"ping {parameter} 1 {ip} >/dev/null 2>&1")
+            if exit_code == 0:
+                self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Incorrect connection string")
+            else:
+                self.logger.check(target=f"{s.connection.hostname}",msg="Not reachable")
             return
 
-        self.logger.check(target=s.connection.hostname, port=s.connection.port, msg="OK")
+        self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}", msg="OK")
 
 
     def run(self, targets: list[str]):
