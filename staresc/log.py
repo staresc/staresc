@@ -1,12 +1,10 @@
 import logging
-import io
-
-import tqdm
 
 from staresc.output import Output
 
 VULN     = logging.INFO + 1
 RAW      = logging.INFO + 2
+CHECK    = logging.INFO + 3
 DEFAULT = 1000
 
 SEVERITY2COLOR = {
@@ -22,17 +20,19 @@ class StarescLogger:
     LEVEL_TO_STRING = {
         VULN      : "VULN",
         RAW       : "RAW",
+        CHECK     : "CHECK",
     }
 
     logger: logging.Logger
-    progress_msg:str = "[STARESC]:[{}]:[RAW MODE]: {}"
+    progress_msg:str = "[STARESC]:[{}]:[RAW]: {}"
 
     class StarescLoggingFormatter(logging.Formatter):
 
         FORMATS = {
             DEFAULT : '[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s',
             VULN    : '[STARESC]:[%(target)s]:[%(c)s%(severity)s%(r)s]:[%(c)s%(plugin)s%(r)s]',
-            RAW     : '[STARESC]:[%(target)s]:[RAW MODE]: %(message)s'
+            RAW     : '[STARESC]:[%(target)s]:[RAW]: %(message)s',
+            CHECK   : '[STARESC]:[%(asctime)s]:[CHECK]: %(target)s: %(message)s'
         }
 
         def format(self, record):  
@@ -123,9 +123,14 @@ class StarescLogger:
 
 
     def raw(self, target:str, port:str, msg:str):
-        
         e = {
             "target": f"{target}:{port}",
-        }
-        
+        }     
         self.logger.raw(msg, extra=e)
+
+    
+    def check(self, target:str, msg:str):
+        e = {
+            "target": {target},
+        }     
+        self.logger.check(msg, extra=e)
