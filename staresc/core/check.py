@@ -14,10 +14,10 @@ class Checker:
         self.logger = logger
 
 
-    def check(self, target: str):
+    def check(self, connection_string: str):
         try:
-            s = Staresc(target)
-            s.prepare()
+            s = Staresc(connection_string)
+            s.prepare(timeout=1)
 
         except StarescAuthenticationError:
             self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Wrong credentials")
@@ -28,14 +28,18 @@ class Checker:
             return
 
         except StarescConnectionStringError:
-            parameter = "-n" if platform.system().lower() == "windows" else "-c"
-            ip = target
-            exit_code = os.system(f"ping {parameter} 1 {ip} >/dev/null 2>&1")
-            if exit_code == 0:
-                self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Incorrect connection string")
-            else:
-                self.logger.check(target=f"{s.connection.hostname}",msg="Not reachable")
-            return
+            try:
+                self.logger.debug(f"{connection_string} is a malformed connection string, is it a single host?")
+                parameter = "-n" if platform.system().lower() == "windows" else "-c"
+                exit_code = os.system(f"ping {parameter} 1 -w1 {connection_string} >/dev/null 2>&1")
+                if exit_code == 0:
+                    self.logger.check(target=f"{connection_string}",msg="OK")
+                else:
+                    self.logger.check(target=f"{connection_string}",msg="Not reachable")
+                return
+        
+            except Exception as e:
+                print(type(e), e)
 
         self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}", msg="OK")
 

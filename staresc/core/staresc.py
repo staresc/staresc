@@ -41,13 +41,13 @@ class Staresc():
             msg = f"scheme is not valid: allowed schemes are {SCHEME_TO_CONNECTION.keys()}"
             raise StarescConnectionStringError(msg)            
 
-    def prepare(self) -> None:
+    def prepare(self, timeout:float = Connection.command_timeout) -> None:
         """Prepare the execution 
         
         It connects to the client, gets os info and caches all the binaries 
         in the system PATH.
         """
-        self.connection.connect()
+        self.connection.connect(timeout)
         self.__populate_binpath()
         self.__get_os_info()
 

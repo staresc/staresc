@@ -53,7 +53,7 @@ class SSHSSConnection(Connection):
         return s == "sshss"
 
 
-    def connect(self):
+    def connect(self,timeout:float = Connection.command_timeout):
         """SSHSS implementation to connect to the target server
 
         It uses paramiko to handle SSH communication. 
@@ -66,7 +66,8 @@ class SSHSSConnection(Connection):
             'hostname'      : self.get_hostname(self.connection),
             'port'          : self.get_port(self.connection),
             'allow_agent'   : False,
-            'look_for_keys' : False
+            'look_for_keys' : False,
+            'timeout'       : timeout,
         }
         paramiko_args['username'], paramiko_args['password'] = self.get_credentials(self.connection)
         if '/' in paramiko_args['password']:
@@ -84,7 +85,7 @@ class SSHSSConnection(Connection):
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
             raise StarescAuthenticationError(msg)
 
-        except (paramiko.SSHException, paramiko.ssh_exception.NoValidConnectionsError):
+        except (paramiko.SSHException, paramiko.ssh_exception.NoValidConnectionsError, TimeoutError):
             msg = f"An error occured when trying to connect"
             raise StarescConnectionError(msg)
             
