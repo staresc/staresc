@@ -47,6 +47,8 @@ def cliparse() -> argparse.Namespace:
     rawmode_params.add_argument('--exec', metavar='file', action='store', help='equivalent to "--pull file --command ./file"')
     rawmode_params.add_argument('--no-tmp', default=False, action='store_true', help='skip creating temp folder and cd-ing into it')
     rawmode_params.add_argument('--show', default=False, action='store_true', help='show commands output in the terminal')
+    rawmode_params.add_argument('--tty', default=False, action='store_true', help='SSH only: request TTY allocation')
+
 
     connection_help  = "schema://user:auth@host:port\n"
     connection_help += "auth can be either a password or a path to ssh\n"

@@ -10,7 +10,7 @@ import tqdm
 
 class RawWorker:
 
-    def __init__(self, logger, connection_string, make_temp=True, tmp_base="/tmp"):
+    def __init__(self, logger, connection_string, make_temp=True, tmp_base="/tmp", get_tty=False):
         self.logger = logger
         self.staresc = Staresc(connection_string)
         self.connection = self.staresc.connection
@@ -18,6 +18,7 @@ class RawWorker:
         self.make_temp = make_temp
         self.tmp_base = tmp_base
         self.tmp = "."
+        self.get_tty = get_tty
 
     @property
     def sftp(self):
@@ -103,7 +104,7 @@ class RawWorker:
                 cmd = self.staresc._get_absolute_cmd(cmd)
                 if self.make_temp:
                     cmd = f"cd {self.tmp} ; " + cmd
-                stdin, stdout, stderr = self.connection.run(cmd, timeout=None)
+                stdin, stdout, stderr = self.connection.run(cmd, timeout=None, get_tty=self.get_tty)
                 output.add_test_result(stdin, stdout, stderr)
             except StarescCommandError:
                 output.add_timeout_result(stdin=cmd)
@@ -135,6 +136,7 @@ class RawRunner:
         self.pull = args.pull
         self.push = args.push
         self.show = args.show
+        self.get_tty = args.tty
 
         # If the you want to just push/pull files, disable the temp dir creation
         if len(self.commands) == 0:
@@ -146,7 +148,7 @@ class RawRunner:
     def launch(self, connection_string: str) -> None:
         """Launch the commands"""
         try:
-            worker = RawWorker(self.logger, connection_string, self.make_temp)
+            worker = RawWorker(self.logger, connection_string, self.make_temp, get_tty=self.get_tty)
             self.logger.info(f"[{worker.connection.hostname}] Job started")
             worker.prepare()
 
