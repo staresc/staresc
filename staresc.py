@@ -9,6 +9,8 @@ I'm @5amu, welcome!
 
 import argparse
 import os
+from tabnanny import check
+from staresc.core.check import Checker
 from staresc.core.raw import RawRunner
 
 from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler, StarescRawHandler
@@ -26,8 +28,9 @@ def cliparse() -> argparse.Namespace:
     parser.add_argument( '-d', '--debug', action='store_true', default=False, help='increase output verbosity to debug mode' )
 
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument( '-p', '--plugins', metavar='dir', action='store', default='', help='path to plugins directory' )
-    mode.add_argument( '-r', '--raw', default=False, action='store_true', help='Raw mode: execute custom commands' )
+    mode.add_argument('-p', '--plugins', metavar='dir', action='store', default='', help='path to plugins directory' )
+    mode.add_argument('-r', '--raw', default=False, action='store_true', help='Raw mode: execute custom commands' )
+    mode.add_argument('-c', '--check', default=False, action='store_true', help='Check mode: check reachability')
 
     main_group = parser.add_mutually_exclusive_group(required=True)
     main_group.add_argument('-t', '--test', action='store_true', default=False, help='test staresc integrity')
@@ -152,6 +155,12 @@ def main():
         rr.run(targets)
         exit(0)
     
+    if args.check:
+        checker = Checker(logger=logger)
+        checker.run(targets=targets)
+        exit(0)
+
+
     if not args.plugins:
         plugins_dir = os.path.dirname(os.path.realpath(__file__))
         plugins_dir = os.path.join(plugins_dir, "plugins/")
