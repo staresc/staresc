@@ -1,8 +1,12 @@
 import logging
+import io
+
+import tqdm
 
 from staresc.output import Output
 
-VULN    = logging.INFO + 1
+VULN     = logging.INFO + 1
+RAW      = logging.INFO + 2
 DEFAULT = 1000
 
 SEVERITY2COLOR = {
@@ -17,21 +21,24 @@ class StarescLogger:
 
     LEVEL_TO_STRING = {
         VULN      : "VULN",
+        RAW       : "RAW",
     }
 
     logger: logging.Logger
+    progress_msg:str = "[STARESC]:[{}]:[RAW MODE]: {}"
 
     class StarescLoggingFormatter(logging.Formatter):
 
         FORMATS = {
             DEFAULT : '[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s',
-            VULN    : '[STARESC]:[%(target)s]:[%(c)s%(severity)s%(r)s]:[%(c)s%(plugin)s%(r)s]'
+            VULN    : '[STARESC]:[%(target)s]:[%(c)s%(severity)s%(r)s]:[%(c)s%(plugin)s%(r)s]',
+            RAW     : '[STARESC]:[%(target)s]:[RAW MODE]: %(message)s'
         }
 
         def format(self, record):  
             f = self.FORMATS.get(record.levelno, self.FORMATS[DEFAULT])
             formatter = logging.Formatter(fmt=f, datefmt='%Y-%m-%d %H:%M:%S')
-            return formatter.format(record)
+            return formatter.format(record) 
 
 
     # This function is taken from: https://stackoverflow.com/a/35804945
@@ -113,4 +120,12 @@ class StarescLogger:
         }
 
         self.logger.vuln("", extra=e)
-       
+
+
+    def raw(self, target:str, port:str, msg:str):
+        
+        e = {
+            "target": f"{target}:{port}",
+        }
+        
+        self.logger.raw(msg, extra=e)

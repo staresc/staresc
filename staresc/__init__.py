@@ -1,4 +1,4 @@
 #!/usr/bin/python
 
 
-VERSION = "v1.2"
+VERSION = "v2.0"

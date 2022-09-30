@@ -1,5 +1,6 @@
 import re
 from typing import Tuple
+from functools import cached_property
 
 class Connection():
     """Connection is the class handling connections
@@ -51,6 +52,22 @@ class Connection():
             connection -- connection string     
         """
         self.connection = connection
+
+    @cached_property
+    def scheme(self) -> str:
+        return Connection.get_scheme(self.connection)
+
+    @cached_property
+    def hostname(self) -> str:
+        return Connection.get_hostname(self.connection)
+
+    @cached_property
+    def port(self) -> int:
+        return Connection.get_port(self.connection)
+
+    @cached_property
+    def credentials(self)-> Tuple[str, str]:
+        return Connection.get_credentials(self.connection)
 
     @staticmethod
     def parse(connection: str) -> dict[str, str]:
