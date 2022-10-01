@@ -1,6 +1,6 @@
 import os, concurrent.futures
 from staresc.log import StarescLogger
-from staresc.core import Staresc
+from staresc.core import Scanner
 from staresc.exporter import StarescExporter
 from staresc.output import Output
 from staresc.exceptions import StarescCommandError
@@ -149,11 +149,11 @@ class RawWorker:
         if self.__sftp is not None:
             self.__sftp.close()
 
-class RawRunner:
+class Raw:
     targets: list[str]
     logger:  StarescLogger
 
-    def __init__(self, args: argparse.Namespace, logger: StarescLogger) -> None:
+    def __init__(self, args: argparse.Namespace, logger: StarescLogger, exec: str) -> None:
         self.logger  = logger
         self.commands = args.command
         self.pull = args.pull
@@ -215,17 +215,17 @@ class RawRunner:
             self.logger.error(f"{type(e).__name__}: {e}")
             return
 
-    def run(self, targets: list[str]):
+    def run(self, targets: list[str]) -> int:
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
                 if not target.startswith("ssh://"):
                     self.logger.error(f"Target skipped because it's not SSH: {target}")
                     continue
-                futures.append(executor.submit(RawRunner.launch, self, target))
+                futures.append(executor.submit(Raw.launch, self, target))
                 self.logger.debug(f"Started scan on target {target}")
 
             for future in concurrent.futures.as_completed(futures):
                 target = targets[futures.index(future)]
                 self.logger.debug(f"Finished scan on target {target}")
-        StarescExporter.export()
+        return 0

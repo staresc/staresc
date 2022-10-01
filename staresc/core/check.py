@@ -5,7 +5,7 @@ import os
 
 from staresc.log import StarescLogger
 from staresc.exceptions import StarescAuthenticationError, StarescConnectionError, StarescConnectionStringError
-from staresc.core import Staresc
+from staresc.core import Scanner
 
 
 class Checker:
@@ -16,7 +16,7 @@ class Checker:
 
     def check(self, connection_string: str):
         try:
-            s = Staresc(connection_string)
+            s = Scanner(connection_string)
             s.prepare(timeout=1)
 
         except StarescAuthenticationError:
@@ -54,6 +54,7 @@ class Checker:
             for future in concurrent.futures.as_completed(futures):
                 target = targets[futures.index(future)]
                 self.logger.debug(f"Finished scan on target {target}")
+        return 0
     
 
     

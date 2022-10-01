@@ -1,9 +1,7 @@
-import os, concurrent.futures
-
-import yaml
+import concurrent.futures
 
 from staresc.log import StarescLogger
-from staresc.core import Staresc
+from staresc.core import Scanner
 from staresc.exporter import StarescExporter
 from staresc.plugin_parser import Plugin
 
@@ -24,7 +22,7 @@ class StarescRunner:
         self.logger  = logger
 
 
-    def scan(self, connection_string: str, plugins: list[Plugin]) -> None:
+    def __scan(self, connection_string: str, plugins: list[Plugin]) -> None:
         """Launch the scan
 
         Istance Staresc with connection string, prepare and run plugins commands
@@ -32,7 +30,7 @@ class StarescRunner:
         """
         
         try:
-            staresc = Staresc(connection_string)
+            staresc = Scanner(connection_string)
             staresc.prepare()
 
         except Exception as e:
@@ -48,36 +46,16 @@ class StarescRunner:
                 self.logger.error(f"{type(e).__name__}: {e}")
 
 
-    def run(self, targets: list[str], plugins: list[Plugin]):
+    def scan(self, targets: list[str], plugins: list[Plugin]) -> int:
         """Actual runner for the whole program using 5 concurrent threads"""
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
-                futures.append(executor.submit(StarescRunner.scan, self, target, plugins))
+                futures.append(executor.submit(StarescRunner.__scan, self, target, plugins))
                 self.logger.debug(f"Started scan on target {target}")
 
             for future in concurrent.futures.as_completed(futures):
                 target = targets[futures.index(future)]
                 self.logger.debug(f"Finished scan on target {target}")
-
-        StarescExporter.export()
-
-
-    @staticmethod
-    def parse_plugins(plugins_dir: str = None) -> list[Plugin]:
-        """Static method to parse plugins"""
-        plugins = []
-
-        if not plugins_dir.startswith('/'):
-            plugins_dir = os.path.join(os.getcwd(), plugins_dir)
-
-        for plugin_filename in os.listdir(plugins_dir):
-            if plugin_filename.endswith('.yaml'):
-                plugin_filename_long = os.path.join(plugins_dir, plugin_filename)
-                f = open(plugin_filename_long, "r")
-                plugin_content = yaml.load(f.read(), Loader=yaml.Loader)
-                f.close()
-                tmp_plugin = Plugin(plugin_content)
-                plugins.append(tmp_plugin)
-
-        return plugins
+        return 0
+    

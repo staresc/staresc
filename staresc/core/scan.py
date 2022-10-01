@@ -6,7 +6,7 @@ from staresc.plugin_parser import Plugin
 from staresc.output import Output
 from staresc.exceptions import StarescCommandError, StarescConnectionStringError
 
-class Staresc():
+class Scanner():
     """Main component
     
     This is the main component, it is responsible for running scans on a single 

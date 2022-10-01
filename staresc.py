@@ -9,13 +9,14 @@ I'm @5amu, welcome!
 
 import argparse
 import os
-from tabnanny import check
-from staresc.core.check import Checker
-from staresc.core.raw import RawRunner
 
+import yaml
+
+from staresc.core import Checker, Raw, Tester
 from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler, StarescRawHandler
 from staresc.log import StarescLogger
 from staresc.core import StarescRunner
+from staresc.plugin_parser import Plugin
 from staresc import VERSION
 
 # Configure logger
@@ -23,40 +24,43 @@ logger = StarescLogger()
 
 ##################################### CLI #######################################
 
+description  = """
+Make SSH/TELNET PTs great again!
+The connection string format is the following: schema://user:auth@host:port
+auth can be either a password or a path to ssh privkey, specified as \\\\path\\\\to\\\\privkey
+"""
+
 def cliparse() -> argparse.Namespace:
-    parser = argparse.ArgumentParser( prog='staresc', description='Make SSH/TELNET PTs great again!', epilog=' ', formatter_class=argparse.RawTextHelpFormatter )    
-    parser.add_argument( '-d', '--debug', action='store_true', default=False, help='increase output verbosity to debug mode' )
+    parser = argparse.ArgumentParser(prog='staresc', description=description, epilog=' ', formatter_class=argparse.RawTextHelpFormatter )    
+    parser.add_argument('-d',  '--debug',    action='store_true', default=False, help='increase output verbosity to debug mode')
+    parser.add_argument('-v',  '--version',  action='store_true', default=False, help='print version and exit')
+    parser.add_argument('-nb', '--nobanner', action='store_true', default=False, help='hide banner')
 
-    mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('-p', '--plugins', metavar='dir', action='store', default='', help='path to plugins directory' )
-    mode.add_argument('-r', '--raw', default=False, action='store_true', help='Raw mode: execute custom commands' )
-    mode.add_argument('-c', '--check', default=False, action='store_true', help='Check mode: check reachability')
+    targets_or_test = parser.add_mutually_exclusive_group(required=True)
+    targets_or_test.add_argument('-f',  '--file',       metavar='F', action='store', default='', help='input file containing 1 connection string per line' )
+    targets_or_test.add_argument('-cs', '--connection', metavar='CS', action='store', default='', help='connection string' )
+    targets_or_test.add_argument('--test', action='store_true', default=False, help='test staresc integrity')
 
-    main_group = parser.add_mutually_exclusive_group(required=True)
-    main_group.add_argument('-t', '--test', action='store_true', default=False, help='test staresc integrity')
-    main_group.add_argument('-v', '--version', action='store_true', default=False, help='print version and exit')
-    main_group.add_argument('-f', '--file', metavar='targets', default='', action='store', help='input file: 1 connection string per line' )
+    mode_subparser = parser.add_subparsers(dest='mode', help='Staresc execution mode')
+
+    scanmode = mode_subparser.add_parser(name='scan', help='Scan mode: execute plugins on target')
+    scanmode.add_argument('-p', '--plugins', metavar='dir', action='store', default='', help='path to plugins directory')
+
+    rawmode = mode_subparser.add_parser(name='raw', help='Raw mode: execute custom commands', formatter_class=argparse.RawTextHelpFormatter)
+    rawmode.add_argument('--command', metavar='command',  action='append', default=[], help='command to run on the targers')
+    rawmode.add_argument('--push',    metavar='filename', action='append', default=[], help='push files to the target')
+    rawmode.add_argument('--pull',    metavar='filename', action='append', default=[], help='pull files from the target')
+    rawmode.add_argument('--exec',    metavar='filename', action='store',  default='', help='equivalent to "--push file --command ./file"')
+    rawmode.add_argument('--no-tmp', default=False, action='store_true', help='skip creating temp folder and cd-ing into it')
+    rawmode.add_argument('--show',   default=False, action='store_true', help='show commands output in the terminal')
+    rawmode.add_argument('--notty',  default=False, action='store_true', help='SSH only: don\'t request a TTY')
+
+    checkmode = mode_subparser.add_parser(name='check', help='Check mode: check reachability')
+    checkmode.add_argument('--ping', default=False, action='store_true', help='ping hosts if they do not respond at ssh port')
 
     outputs = parser.add_mutually_exclusive_group(required=False)
-    outputs.add_argument('-oall', '--output-all', metavar='pattern', action='store', default='', help='export results in all possible formats')
-    outputs.add_argument('-ocsv', '--output-csv', metavar='filename', action='store', default='', help='export results on a csv file')
-    outputs.add_argument('-oxlsx', '--output-xlsx', metavar='filename', action='store', default='', help='export results on a xlsx (MS Excel) file')
-    outputs.add_argument('-ojson', '--output-json', metavar='filename', action='store', default='', help='export results on a json file')
- 
-    rawmode_params = parser.add_argument_group()
-    rawmode_params.add_argument('--command', metavar='command', action='append', default=[], help='command to run on the targers')
-    rawmode_params.add_argument('--push', metavar='filename', action='append', default=[], help='push files to the target')
-    rawmode_params.add_argument('--pull', metavar='filename', action='append', default=[], help='pull files from the target')
-    rawmode_params.add_argument('--exec', metavar='file', action='store', help='equivalent to "--push file --command ./file"')
-    rawmode_params.add_argument('--no-tmp', default=False, action='store_true', help='skip creating temp folder and cd-ing into it')
-    rawmode_params.add_argument('--show', default=False, action='store_true', help='show commands output in the terminal')
-    rawmode_params.add_argument('--notty', default=False, action='store_true', help='SSH only: don\'t request a TTY')
-
-
-    connection_help  = "schema://user:auth@host:port\n"
-    connection_help += "auth can be either a password or a path to ssh\n"
-    connection_help += "privkey, specified as \\\\path\\\\to\\\\privkey"
-    main_group.add_argument('connection', nargs='?', action='store', default=None, help=connection_help )
+    outputs.add_argument('-o',  '--output', metavar='pattern', action='store', default='', help='export results in specified format')
+    outputs.add_argument('-of', '--output-format', metavar='FMT', action='append', default=['csv'], help='format of results')    
     return parser.parse_args()
 
 
@@ -74,33 +78,25 @@ def parsepath(p:str) -> str:
         full_path = os.path.join(full_path, "results")
 
     return full_path
-
-
-def starttest():
-    import unittest, threading, time
-    import staresc.test as test
-
-    suite = unittest.TestSuite()
-    [ suite.addTest(test.StarescTests(t)) for t in test.StarescTests.TESTLIST ]
-
-    t_args = {
-        "target" : test.start_server,
-        "args"   : ("127.0.0.1", 9001),
-        "daemon" : True,
-    }
-    threading.Thread(**t_args).start()
     
-    logger.info("Starting tests")
-    time.sleep(1)
-    
-    try:
-        r = unittest.TextTestRunner().run(suite)
-        logger.info("End of tests")
-        if not r.wasSuccessful():
-            exit(1)
-    
-    except Exception as e:
-        logger.error(e)
+
+def parse_plugins(plugins_dir: str = None) -> list[Plugin]:
+    """Static method to parse plugins"""
+    if not plugins_dir:
+        tmp = os.path.dirname(os.path.realpath(__file__))
+        plugins_dir = os.path.join(tmp, "plugins/")
+    elif not plugins_dir.startswith('/'):
+        plugins_dir = os.path.join(os.getcwd(), plugins_dir)
+
+    plugins = []
+    for plugin_filename in os.listdir(plugins_dir):
+        if plugin_filename.endswith('.yaml'):
+            plugin_filename_long = os.path.join(plugins_dir, plugin_filename)
+            with open(plugin_filename_long, "r") as f: 
+                plugin_content = yaml.load(f.read(), Loader=yaml.Loader)
+            tmp_plugin = Plugin(plugin_content)
+            plugins.append(tmp_plugin)
+    return plugins
 
 
 def banner() -> str:
@@ -117,26 +113,26 @@ def banner() -> str:
 
 
 def main():
-    
     args = cliparse()
     
+    # Print version if -v is specified and return
     if args.version:
         print(f"Staresc Version: {VERSION}\n")
         return
 
-    print("\033[1m\033[1;31m" + banner() + "\033[0m")
+    # if -hb|--nobanner is not passed, show the banner
+    if not args.nobanner:
+        print("\033[1m\033[1;31m" + banner() + "\033[0m")
 
+    # if -d|--debug is set, then start printing logger's debug messages
     if args.debug:
         logger.setLevelDebug()
         logger.debug("Logger set to debug mode")
     else:
         logger.setLevelInfo()
+        
 
-    if args.test:
-        starttest()
-        return
-
-
+    # get targets if any, it is useful in every mode
     if args.file:
         f = open(args.file, 'r')
         targets = [t.strip() for t in f.readlines()]
@@ -145,49 +141,50 @@ def main():
         targets = [ str(args.connection) ]
         logger.debug(f"Loaded connection: {args.connection}")
 
-    if args.raw:
-        if args.exec:
-            args.push.append(args.exec)
-            args.command.append('./' + os.path.basename(args.exec))
+    # determine output and output formats
+    if args.output:
+        full_path = parsepath(args.output)
+        for fmt in args.output_format:
+            if fmt == 'csv':
+                StarescExporter.register_handler(StarescCSVHandler(os.path.join(full_path + ".csv")))
+            elif fmt == 'xlsx':
+                StarescExporter.register_handler(StarescXLSXHandler(os.path.join(full_path + ".xlsx")))
+            elif fmt == 'json':
+                StarescExporter.register_handler(StarescJSONHandler(os.path.join(full_path + ".json")))
 
+    # switch to subcommands
+    # subcommand scan handles the plugin run on various targets. this is the
+    # only mode that needs the plugins. which can be made specifically for a
+    # particular vulnerability.
+    if args.mode == 'scan':
+        StarescExporter.register_handler(StarescStdoutHandler(""))        
+        exit_code = StarescRunner(logger).scan(targets, parse_plugins(args.plugins))
+
+    # subcommand raw handles the command parallel command execution and file
+    # transfers on the targets. 
+    elif args.mode == 'raw':
         StarescExporter.register_handler(StarescRawHandler(""))
-        rr = RawRunner(args, logger)
-        rr.run(targets)
-        exit(0)
+        exit_code = Raw(args, logger, args.exec).run(targets)
+
+    # subcommand check handles the reachability and authentication checks on
+    # the targets in scope. This mode should produce a csv output for easy 
+    # sharing and readability.
+    elif args.mode == 'check':
+        exit_code = Checker(logger=logger).run(targets=targets)
     
-    if args.check:
-        checker = Checker(logger=logger)
-        checker.run(targets=targets)
-        exit(0)
+    # not a subcommand, but test staresc integrity by spawning an SSH server
+    # and launching pre-determined commands against it to test how staresc
+    # would deal with it.
+    elif args.test: 
+        exit(Tester(logger=logger).test())
 
-
-    if not args.plugins:
-        plugins_dir = os.path.dirname(os.path.realpath(__file__))
-        plugins_dir = os.path.join(plugins_dir, "plugins/")
-    else:
-        plugins_dir = args.plugins
-
-    StarescExporter.register_handler(StarescStdoutHandler(""))
-
-    if args.output_all:
-        full_path = parsepath(args.output_all)
-        StarescExporter.register_handler(StarescCSVHandler(os.path.join(full_path + ".csv")))
-        StarescExporter.register_handler(StarescXLSXHandler(os.path.join(full_path + ".xlsx")))
-        StarescExporter.register_handler(StarescJSONHandler(os.path.join(full_path + ".json")))
-
-    if args.output_csv:
-        StarescExporter.register_handler(StarescCSVHandler(args.output_csv))
-
-    if args.output_xlsx:
-        StarescExporter.register_handler(StarescXLSXHandler(args.output_xlsx))
-
-    if args.output_json:
-        StarescExporter.register_handler(StarescJSONHandler(args.output_json))
-
-    sr = StarescRunner(logger)
+    StarescExporter.export()
+    exit(exit_code)
     
-    plugins = sr.parse_plugins(plugins_dir)
-    sr.run(targets, plugins)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+
+    except Exception as e:
+        logger.error(e)
