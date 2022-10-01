@@ -131,6 +131,6 @@ class StarescLogger:
     
     def check(self, target:str, msg:str):
         e = {
-            "target": {target},
+            "target": target,
         }     
         self.logger.check(msg, extra=e)

@@ -1,0 +1,6 @@
+ssh://samu:test@127.0.0.1:22
+ssh://samu:testina@127.0.0.1:22
+ssh://samu:testaaa@10.0.0.1:22
+ssh://samu:testbbb@127.0.0.1:22
+10.0.0.1
+127.0.0.1
