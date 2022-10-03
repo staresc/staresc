@@ -27,15 +27,15 @@ class TNTConnection(Connection):
             StarescConnectionError -- raised when the program can't connect to the target 
         """
         telnet_args = {
-            'host'    : self.get_hostname(self.connection),
-            'port'    : self.get_port(self.connection),
+            'host'    : self.hostname,
+            'port'    : self.port,
             'timeout' : Connection.command_timeout
         }
 
         try:
             self.client = telnetlib.Telnet(**telnet_args)
             
-            usr, pwd = self.get_credentials(self.connection)
+            usr, pwd = self.credentials
             self.client.read_until(b"login:")
             self.client.write(usr.encode('ascii') + b"\n")
             self.client.read_until(b"Password: ")

@@ -63,13 +63,13 @@ class SSHSSConnection(Connection):
             StarescConnectionError -- raised when the program can't connect to the target 
         """
         paramiko_args = {
-            'hostname'      : self.get_hostname(self.connection),
-            'port'          : self.get_port(self.connection),
+            'hostname'      : self.hostname,
+            'port'          : self.port,
             'allow_agent'   : False,
             'look_for_keys' : False,
             'timeout'       : timeout,
         }
-        paramiko_args['username'], paramiko_args['password'] = self.get_credentials(self.connection)
+        paramiko_args['username'], paramiko_args['password'] = self.credentials
         if '/' in paramiko_args['password']:
             paramiko_args['pkey']     = paramiko.RSAKey.from_private_key_file(paramiko_args['password'])
             paramiko_args['password'] = None

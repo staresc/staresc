@@ -32,7 +32,7 @@ class Scanner():
             msg = f"invalid connection string: {connection_string}"
             raise ConnectionStringError(msg)
 
-        scheme = Connection.get_scheme(connection_string)
+        scheme = Connection.parse(connection_string)['scheme']
         
         try:
             self.connection = SCHEME_TO_CONNECTION[scheme](connection_string)
