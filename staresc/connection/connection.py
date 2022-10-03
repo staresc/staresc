@@ -55,19 +55,23 @@ class Connection():
 
     @cached_property
     def scheme(self) -> str:
-        return Connection.get_scheme(self.connection)
+        return Connection.parse(self.connection)['scheme']
 
     @cached_property
     def hostname(self) -> str:
-        return Connection.get_hostname(self.connection)
+        return Connection.parse(self.connection)['hostname']
 
     @cached_property
     def port(self) -> int:
-        return Connection.get_port(self.connection)
+        return int(Connection.parse(self.connection)['port'])
 
     @cached_property
     def credentials(self)-> Tuple[str, str]:
-        return Connection.get_credentials(self.connection)
+        """Get user credentials from connection string"""
+        p = Connection.parse(self.connection)
+        if "\\" in p['password']:
+            return p['username'], p['password'].replace("\\", "/")
+        return p['username'], p['password']
 
     @staticmethod
     def parse(connection: str) -> dict[str, str]:
@@ -81,31 +85,6 @@ class Connection():
             'username': match.group(2),
             'password': match.group(3)
         }
-
-    @staticmethod
-    def get_scheme(connection: str) -> str:
-        """Get scheme from connection string"""
-        return Connection.parse(connection)['scheme']
-
-    @staticmethod
-    def get_hostname(connection: str) -> str:
-        """Get hostname from connection string"""
-        return Connection.parse(connection)['hostname']
-
-    @staticmethod
-    def get_port(connection: str) -> int:
-        """Get port from connection string"""
-        return int(Connection.parse(connection)['port'])
-
-    @staticmethod
-    def get_credentials(connection: str) -> Tuple[str, str]:
-        """Get user credentials from connection string"""
-        p = Connection.parse(connection)
-
-        if "\\" in p['password']:
-            return p['username'], p['password'].replace("\\", "/")
-
-        return p['username'], p['password']
 
     @staticmethod
     def is_connection_string(connection: str) -> bool:

@@ -52,6 +52,7 @@ class Extractor(Parser):
                 extracted_words[p] += self.rules[0]
         return (is_extracted, extracted_words)
     
+    
     def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         """Method used to parse the result of a command and to check if the vuln is found.
         In this class, this method extract part of the result using the rules and return them.
