@@ -1,5 +1,5 @@
 from typing import Tuple
-from staresc.exceptions import StarescPluginError
+from staresc.exceptions import PluginError
 
 from staresc.plugin_parser import Parser, Matcher, Extractor
 
@@ -34,11 +34,11 @@ class Test:
 
         except KeyError:
             msg = "invalid syntax command/parsers"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
         if (not isinstance(parsers, list)) or (len(parsers) < 1):
             msg = "no parser specified or invalid syntax"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
         
         MAP_PARSER = {
             "matcher"   : Matcher,
@@ -51,7 +51,7 @@ class Test:
 
             except KeyError:
                 msg = "invalid parser_type value"
-                raise StarescPluginError(msg)
+                raise PluginError(msg)
 
 
     def get_command(self) -> str:

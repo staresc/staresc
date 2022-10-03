@@ -1,4 +1,4 @@
-class StarescConnectionStringError(Exception):
+class ConnectionStringError(Exception):
     """
     Exception raised if the connection string is invalid
     
@@ -10,7 +10,7 @@ class StarescConnectionStringError(Exception):
         super().__init__(msg)
 
 
-class StarescCommandError(Exception):
+class CommandError(Exception):
     """Exception raised when a command fails
 
     Attributes:
@@ -22,7 +22,7 @@ class StarescCommandError(Exception):
         super().__init__(msg)
 
 
-class StarescAuthenticationError(Exception):
+class AuthenticationError(Exception):
     """Exception raised when the authentication fails
 
     Attributes:
@@ -33,7 +33,7 @@ class StarescAuthenticationError(Exception):
         super().__init__(msg)
 
 
-class StarescConnectionError(Exception):
+class ConnectionError(Exception):
     """Exception raised when the connection fails
 
     Attributes:
@@ -44,7 +44,7 @@ class StarescConnectionError(Exception):
         super().__init__(msg)
 
 
-class StarescPluginError(Exception):
+class PluginError(Exception):
     """Exception raised when the plugin syntax is wrong
 
     Attributes:

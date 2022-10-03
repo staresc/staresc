@@ -3,7 +3,7 @@ from typing import Tuple
 
 import paramiko
 
-from staresc.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
+from staresc.exceptions import AuthenticationError, CommandError, ConnectionError
 from staresc.connection import Connection
 
 logger = logging.getLogger(__name__)
@@ -72,11 +72,11 @@ class SSHConnection(Connection):
 
         except paramiko.AuthenticationException:
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
-            raise StarescAuthenticationError(msg)
+            raise AuthenticationError(msg)
 
         except (paramiko.SSHException, paramiko.ssh_exception.NoValidConnectionsError, TimeoutError):
             msg = f"An error occured when trying to connect"
-            raise StarescConnectionError(msg)
+            raise ConnectionError(msg)
             
 
     def run(self, cmd: str, timeout: float = Connection.command_timeout, bufsize: int = 4096, get_pty=False) -> Tuple[str, str, str]:
@@ -103,11 +103,11 @@ class SSHConnection(Connection):
 
         except paramiko.SSHException:
             msg = f"Couldn't open session when trying to run command: {cmd}"
-            raise StarescConnectionError(msg)
+            raise ConnectionError(msg)
 
         except TimeoutError:
             msg = f"command {cmd} timed out"
-            raise StarescCommandError(msg)
+            raise CommandError(msg)
          
         return (
             # stdin

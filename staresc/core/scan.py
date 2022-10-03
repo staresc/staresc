@@ -4,7 +4,7 @@ from functools import lru_cache
 from staresc.connection import Connection, SCHEME_TO_CONNECTION
 from staresc.plugin_parser import Plugin
 from staresc.output import Output
-from staresc.exceptions import StarescCommandError, StarescConnectionStringError
+from staresc.exceptions import CommandError, ConnectionStringError
 
 class Scanner():
     """Main component
@@ -30,7 +30,7 @@ class Scanner():
         # Check if connection schema is valid
         if not Connection.is_connection_string(connection_string):
             msg = f"invalid connection string: {connection_string}"
-            raise StarescConnectionStringError(msg)
+            raise ConnectionStringError(msg)
 
         scheme = Connection.get_scheme(connection_string)
         
@@ -39,7 +39,7 @@ class Scanner():
 
         except KeyError:
             msg = f"scheme is not valid: allowed schemes are {SCHEME_TO_CONNECTION.keys()}"
-            raise StarescConnectionStringError(msg)            
+            raise ConnectionStringError(msg)            
 
     def prepare(self, timeout:float = Connection.command_timeout) -> None:
         """Prepare the execution 
@@ -124,6 +124,6 @@ class Scanner():
                     plugin_output.set_vuln_found(False)
                     break
 
-            except StarescCommandError as e:
+            except CommandError as e:
                 plugin_output.add_timeout_result(stdin=cmd)
         return plugin_output

@@ -1,9 +1,9 @@
 from queue import Queue
 
-from staresc.exporter.handlers import StarescHandler
+from staresc.exporter.handlers import Handler
 from staresc.output import Output
 
-class StarescExporter():
+class Exporter():
     """Handle Staresc output
 
     This class is never istanciated, has class methods and an output queue
@@ -12,10 +12,10 @@ class StarescExporter():
     """
 
     runs_results: Queue[Output] = Queue()
-    handlers: list[StarescHandler] = []
+    handlers: list[Handler] = []
 
     @classmethod
-    def register_handler(cls, handler: StarescHandler):
+    def register_handler(cls, handler: Handler):
         """Called to add an handler to the class"""
         cls.handlers.append(handler)
 

@@ -1,7 +1,7 @@
 import os,binascii, re, telnetlib
 from typing import Tuple
 
-from staresc.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
+from staresc.exceptions import AuthenticationError, CommandError, ConnectionError
 from staresc.connection import Connection
 
 
@@ -43,7 +43,7 @@ class TNTConnection(Connection):
         
         except (OSError,EOFError):
             msg = f"connection to {telnet_args['host']} failed"
-            raise StarescConnectionError(msg)
+            raise ConnectionError(msg)
         
         delimiter_canary = binascii.b2a_hex(os.urandom(15))
         try:
@@ -52,7 +52,7 @@ class TNTConnection(Connection):
 
         except (OSError,EOFError):
             msg = f"Authentication failed for {usr} with password {pwd}"
-            raise StarescAuthenticationError(msg)
+            raise AuthenticationError(msg)
 
 
     def run(self, cmd: str, timeout: float = Connection.command_timeout) -> Tuple[str, str, str]:
@@ -73,12 +73,12 @@ class TNTConnection(Connection):
 
         except (OSError,EOFError):
             msg = f"connection dropped while executing command: {cmd}"
-            raise StarescCommandError
+            raise CommandError
 
         if (b'\r\n' + delimiter_canary + b'\r\n') not in stdout:
             # read_until() returned due to timeout
             msg = f"command {cmd} timed out"
-            raise StarescCommandError(msg)
+            raise CommandError(msg)
 
         # extract from stdout the output of cmd
         stdout = re.split(delimiter_canary.decode('ascii') + '\s*\r\n', stdout.decode('ascii'))[-2]

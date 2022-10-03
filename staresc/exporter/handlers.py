@@ -4,11 +4,11 @@ import xlsxwriter
 import json
 from tabulate import tabulate
 
-from staresc.log import StarescLogger
+from staresc.log import Logger
 from staresc.output import Output
 from staresc.connection import Connection
 
-class StarescHandler:
+class Handler:
     """Generic handler
     
     This is a generic handler for StarescExporter
@@ -38,7 +38,7 @@ class StarescHandler:
         pass
 
 
-class StarescCSVHandler(StarescHandler):
+class CSVHandler(Handler):
 
     def import_handler(self, o: Output):
         pass
@@ -93,9 +93,9 @@ class StarescCSVHandler(StarescHandler):
             csv_writer.writerows(out_rows)
 
 
-class StarescStdoutHandler(StarescHandler):
+class StdoutHandler(Handler):
 
-    logger: StarescLogger = StarescLogger()
+    logger: Logger = Logger()
     scan_summary: dict
 
     def __init__(self, out: str) -> None:
@@ -136,7 +136,7 @@ class StarescStdoutHandler(StarescHandler):
         print(tabulate(tab, headers=headers, tablefmt=fmt))
 
 
-class StarescXLSXHandler(StarescHandler):
+class XLSXHandler(Handler):
 
     def import_handler(self, o: Output):
         pass
@@ -198,7 +198,7 @@ class StarescXLSXHandler(StarescHandler):
         workbook.close()
 
 
-class StarescJSONHandler(StarescHandler):
+class JSONHandler(Handler):
 
     def import_handler(self, o: Output):
         pass
@@ -242,7 +242,8 @@ class StarescJSONHandler(StarescHandler):
             json.dump(out_dict, f)
             f.close()
 
-class StarescRawHandler(StarescHandler):
+
+class RawHandler(Handler):
 
     def import_handler(self, o: Output):
         pass

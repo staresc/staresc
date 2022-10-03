@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from staresc.exceptions import StarescPluginError
+from staresc.exceptions import PluginError
 
 # parent class of matcher and extractor
 # it represents a parser with its rule
@@ -74,7 +74,7 @@ class Parser:
             return [ selected ]
         else:
             msg = "Invalid part value"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
             
 
     @staticmethod
@@ -88,13 +88,13 @@ class Parser:
         
         except KeyError:
             msg = "No rule_type specified in parser definition"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
         if selected in Parser.ALLOWED_RULES:
             return selected
         else:
             msg = f"Unsupported rule_type: {selected}"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
 
     @staticmethod
@@ -113,7 +113,7 @@ class Parser:
             return selected
         else:
             msg = f'Invalid condition {selected}'
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
 
     @staticmethod
@@ -127,13 +127,13 @@ class Parser:
         
         except KeyError:
             msg = "No rule_type specified in parser definition"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
         if (isinstance(selected, list)) and (len(selected) > 0):
             return selected
         else:
             msg = "No rule specified"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
 
     @staticmethod
@@ -152,7 +152,7 @@ class Parser:
             return selected
         else:
             msg = f"Invalid invert_match {d['invert_match']}"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
             
 
     def __init__(self, parser_content: dict):

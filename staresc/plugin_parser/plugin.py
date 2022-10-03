@@ -1,4 +1,4 @@
-from staresc.exceptions import StarescPluginError
+from staresc.exceptions import PluginError
 from staresc.plugin_parser import Test
 
 class Plugin:
@@ -82,7 +82,7 @@ class Plugin:
             return selected
         else:
             msg = f'Invalid condition {selected}'
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
 
     def __init__(self, plugin_content: dict):
@@ -98,11 +98,11 @@ class Plugin:
 
         except KeyError:
             msg = "plugin syntax is wrong"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
         if (not isinstance(test_list, list))  or len(test_list) < 1:
             msg = "no test specified or invalid syntax"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
         if "distr_matcher" in plugin_content:
             self.distribution_matcher = plugin_content["distr_matcher"]

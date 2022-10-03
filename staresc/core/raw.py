@@ -1,18 +1,22 @@
-import os, concurrent.futures
-from staresc.log import StarescLogger
-from staresc.core import Scanner
-from staresc.exporter import StarescExporter
-from staresc.output import Output
-from staresc.exceptions import StarescCommandError
+import os
+import concurrent.futures
 import argparse
+
+
 import paramiko
 import tqdm
+
+from staresc.log import Logger
+from staresc.core import Scanner
+from staresc.exporter import Exporter
+from staresc.output import Output
+from staresc.exceptions import CommandError
 
 class RawWorker:
 
     def __init__(self, logger, connection_string, make_temp=True, tmp_base="/tmp", get_tty=True):
         self.logger = logger
-        self.staresc = Staresc(connection_string)
+        self.staresc = Scanner(connection_string)
         self.connection = self.staresc.connection
         self.__sftp = None
         self.make_temp = make_temp
@@ -97,7 +101,7 @@ class RawWorker:
             msg=f"Pushing {filename} to {dest}"
         )
 
-        title = StarescLogger.progress_msg.format(
+        title = Logger.progress_msg.format(
             f"{self.connection.hostname}:{self.connection.port}",
             f"⏫ {filename}",
         )
@@ -116,7 +120,7 @@ class RawWorker:
             port=self.connection.port,
             msg=f"Pulling {filename} to {dest}"
         )
-        title = StarescLogger.progress_msg.format(
+        title = Logger.progress_msg.format(
             f"{self.connection.hostname}:{self.connection.port}",
             f"⏬ {filename}",
         )
@@ -137,7 +141,7 @@ class RawWorker:
                     cmd = f"cd {self.tmp} ; " + cmd
                 stdin, stdout, stderr = self.connection.run(cmd, timeout=None, get_pty=self.get_tty)
                 output.add_test_result(stdin, stdout, stderr)
-            except StarescCommandError:
+            except CommandError:
                 output.add_timeout_result(stdin=cmd)
 
         return output
@@ -151,9 +155,9 @@ class RawWorker:
 
 class Raw:
     targets: list[str]
-    logger:  StarescLogger
+    logger:  Logger
 
-    def __init__(self, args: argparse.Namespace, logger: StarescLogger, exec: str) -> None:
+    def __init__(self, args: argparse.Namespace, logger: Logger, exec: str) -> None:
         self.logger  = logger
         self.commands = args.command
         self.pull = args.pull
@@ -186,7 +190,7 @@ class Raw:
 
                 # Execute commands
                 output = worker.exec(self.commands)
-                StarescExporter.import_output(output)
+                Exporter.import_output(output)
                 if self.show:
                     self.logger.raw(
                         target=worker.connection.hostname,

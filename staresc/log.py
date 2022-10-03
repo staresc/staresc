@@ -15,7 +15,7 @@ SEVERITY2COLOR = {
     "info"     : "\033[0;32m", # green
 }
 
-class StarescLogger:
+class Logger:
 
     LEVEL_TO_STRING = {
         VULN      : "VULN",
@@ -26,7 +26,7 @@ class StarescLogger:
     logger: logging.Logger
     progress_msg:str = "[STARESC]:[{}]:[RAW]: {}"
 
-    class StarescLoggingFormatter(logging.Formatter):
+    class LoggingFormatter(logging.Formatter):
 
         FORMATS = {
             DEFAULT : '[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s',
@@ -80,7 +80,7 @@ class StarescLogger:
             return
             
         hdlr = logging.StreamHandler()
-        hdlr.setFormatter(self.StarescLoggingFormatter())
+        hdlr.setFormatter(self.LoggingFormatter())
         self.logger.addHandler(hdlr)
 
 

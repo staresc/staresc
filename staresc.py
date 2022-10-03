@@ -12,15 +12,14 @@ import os
 
 import yaml
 
-from staresc.core import Checker, Raw, Tester
-from staresc.exporter import StarescExporter, StarescCSVHandler, StarescStdoutHandler, StarescXLSXHandler, StarescJSONHandler, StarescRawHandler
-from staresc.log import StarescLogger
-from staresc.core import StarescRunner
+from staresc.core import Runner, Checker, Raw, Tester
+from staresc.exporter import Exporter, CSVHandler, StdoutHandler, XLSXHandler, JSONHandler, RawHandler
+from staresc.log import Logger
 from staresc.plugin_parser import Plugin
 from staresc import VERSION
 
 # Configure logger
-logger = StarescLogger()
+logger = Logger()
 
 ##################################### CLI #######################################
 
@@ -146,24 +145,24 @@ def main():
         full_path = parsepath(args.output)
         for fmt in args.output_format:
             if fmt == 'csv':
-                StarescExporter.register_handler(StarescCSVHandler(os.path.join(full_path + ".csv")))
+                Exporter.register_handler(CSVHandler(os.path.join(full_path + ".csv")))
             elif fmt == 'xlsx':
-                StarescExporter.register_handler(StarescXLSXHandler(os.path.join(full_path + ".xlsx")))
+                Exporter.register_handler(XLSXHandler(os.path.join(full_path + ".xlsx")))
             elif fmt == 'json':
-                StarescExporter.register_handler(StarescJSONHandler(os.path.join(full_path + ".json")))
+                Exporter.register_handler(JSONHandler(os.path.join(full_path + ".json")))
 
     # switch to subcommands
     # subcommand scan handles the plugin run on various targets. this is the
     # only mode that needs the plugins. which can be made specifically for a
     # particular vulnerability.
     if args.mode == 'scan':
-        StarescExporter.register_handler(StarescStdoutHandler(""))        
-        exit_code = StarescRunner(logger).scan(targets, parse_plugins(args.plugins))
+        Exporter.register_handler(StdoutHandler(""))        
+        exit_code = Runner(logger).scan(targets, parse_plugins(args.plugins))
 
     # subcommand raw handles the command parallel command execution and file
     # transfers on the targets. 
     elif args.mode == 'raw':
-        StarescExporter.register_handler(StarescRawHandler(""))
+        Exporter.register_handler(RawHandler(""))
         exit_code = Raw(args, logger, args.exec).run(targets)
 
     # subcommand check handles the reachability and authentication checks on
@@ -178,7 +177,7 @@ def main():
     elif args.test: 
         exit(Tester(logger=logger).test())
 
-    StarescExporter.export()
+    Exporter.export()
     exit(exit_code)
     
 

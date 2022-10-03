@@ -9,5 +9,5 @@ from .scan import Scanner
 from .check import Checker
 from .raw import Raw
 from .test import Tester
-from .runner import StarescRunner
+from .runner import Runner
 

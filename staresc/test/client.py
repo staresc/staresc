@@ -1,7 +1,7 @@
 import unittest
 
 import staresc.connection as conn
-from staresc.exceptions import StarescConnectionError, StarescAuthenticationError
+from staresc.exceptions import ConnectionError, AuthenticationError
 
 UNREACHABLES = {
     "ssh://u:p@127.0.0.1:9999/"    : conn.SSHConnection,
@@ -41,7 +41,7 @@ class StarescTests(unittest.TestCase):
                 c.close()
 
             except Exception as e:
-                self.assertTrue(isinstance(e, StarescConnectionError))
+                self.assertTrue(isinstance(e, ConnectionError))
 
     
     def test_connection(self):
@@ -59,5 +59,5 @@ class StarescTests(unittest.TestCase):
                 c.connect()
 
             except Exception as e:
-                self.assertTrue(isinstance(e, StarescAuthenticationError))
+                self.assertTrue(isinstance(e, AuthenticationError))
 

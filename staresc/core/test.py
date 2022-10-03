@@ -2,14 +2,14 @@ import unittest
 import threading
 import time
 
-from staresc.log import StarescLogger 
+from staresc.log import Logger 
 import staresc.test as test
 
 
 
 class Tester:
 
-    def __init__(self, logger: StarescLogger) -> None:
+    def __init__(self, logger: Logger) -> None:
         self.logger = logger
 
 

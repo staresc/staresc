@@ -3,14 +3,14 @@ import platform
 import os
 
 
-from staresc.log import StarescLogger
-from staresc.exceptions import StarescAuthenticationError, StarescConnectionError, StarescConnectionStringError
+from staresc.log import Logger
+from staresc.exceptions import AuthenticationError, ConnectionError, ConnectionStringError
 from staresc.core import Scanner
 
 
 class Checker:
 
-    def __init__(self, logger: StarescLogger) -> None:
+    def __init__(self, logger: Logger) -> None:
         self.logger = logger
 
 
@@ -19,15 +19,15 @@ class Checker:
             s = Scanner(connection_string)
             s.prepare(timeout=1)
 
-        except StarescAuthenticationError:
+        except AuthenticationError:
             self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Wrong credentials")
             return
 
-        except StarescConnectionError:
+        except ConnectionError:
             self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Not reachable")
             return
 
-        except StarescConnectionStringError:
+        except ConnectionStringError:
             try:
                 self.logger.debug(f"{connection_string} is a malformed connection string, is it a single host?")
                 parameter = "-n" if platform.system().lower() == "windows" else "-c"

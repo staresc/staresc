@@ -1,12 +1,12 @@
 import concurrent.futures
 
-from staresc.log import StarescLogger
+from staresc.log import Logger
 from staresc.core import Scanner
-from staresc.exporter import StarescExporter
+from staresc.exporter import Exporter
 from staresc.plugin_parser import Plugin
 
 
-class StarescRunner:
+class Runner:
     """StarescRunner is a factory for Staresc objects
     
     This class is responsible for parsing connection strings, parse plugins,
@@ -16,9 +16,9 @@ class StarescRunner:
     """
 
     targets: list[str]
-    logger:  StarescLogger
+    logger:  Logger
 
-    def __init__(self, logger: StarescLogger) -> None:
+    def __init__(self, logger: Logger) -> None:
         self.logger  = logger
 
 
@@ -41,7 +41,7 @@ class StarescRunner:
             self.logger.debug(f"Scanning {connection_string} with plugin {plugin.id}")
             try:
                 to_append = staresc.do_check(plugin)
-                StarescExporter.import_output(to_append)
+                Exporter.import_output(to_append)
             except Exception as e:
                 self.logger.error(f"{type(e).__name__}: {e}")
 
@@ -51,7 +51,7 @@ class StarescRunner:
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
-                futures.append(executor.submit(StarescRunner.__scan, self, target, plugins))
+                futures.append(executor.submit(Runner.__scan, self, target, plugins))
                 self.logger.debug(f"Started scan on target {target}")
 
             for future in concurrent.futures.as_completed(futures):
