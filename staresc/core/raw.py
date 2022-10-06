@@ -9,6 +9,7 @@ import paramiko
 import tqdm
 import traceback
 from threading import Event, Lock
+import encodings.idna # Needed for pyinstaller
 
 class RawWorker:
 
