@@ -29,8 +29,7 @@ class RawWorker:
         if not self.enable_sftp:
             raise Exception("An SFTP action was requested but --no-sftp was specified.")
         try:
-            paramiko.SFTPClient.from_transport(self.connection.client.get_transport())
-            return self.__sftp
+            return paramiko.SFTPClient.from_transport(self.connection.client.get_transport())
         except paramiko.SSHException as e:
             self.logger.error("Failed to initialize the SFTP subsystem. Retry with --no-sftp")
             raise e
@@ -38,7 +37,7 @@ class RawWorker:
     @property
     def sftp(self):
         if self.__sftp is None:
-            self.sftp = self.__init_sftp()
+            self.__sftp = self.__init_sftp()
         return self.__sftp
         
     def __make_temp_dir(self) -> str:
