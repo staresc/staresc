@@ -219,6 +219,7 @@ class RawRunner:
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
+                if len(target) == 0: continue
                 if not target.startswith("ssh://"):
                     self.logger.error(f"Target skipped because it's not SSH: {target}")
                     continue
