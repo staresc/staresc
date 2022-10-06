@@ -224,7 +224,6 @@ class RawRunner:
                     self.logger.error(f"Target skipped because it's not SSH: {target}")
                     continue
                 futures.append(executor.submit(RawRunner.launch, self, target))
-                self.logger.debug(f"Started scan on target {target}")
 
             for future in concurrent.futures.as_completed(futures):
                 target = targets[futures.index(future)]
