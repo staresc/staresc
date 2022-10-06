@@ -21,7 +21,7 @@ class RawWorker:
         self.tmp_base = tmp_base
         self.tmp = "."
         self.get_tty = get_tty
-        self.lock = Lock
+        self.lock = Lock()
 
     @property
     def sftp(self):
