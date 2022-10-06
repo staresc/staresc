@@ -7,6 +7,8 @@ from staresc.exceptions import StarescCommandError
 import argparse
 import paramiko
 import tqdm
+import traceback
+from threading import Event, Lock
 
 class RawWorker:
 
@@ -19,6 +21,7 @@ class RawWorker:
         self.tmp_base = tmp_base
         self.tmp = "."
         self.get_tty = get_tty
+        self.lock = Lock
 
     @property
     def sftp(self):
@@ -143,11 +146,13 @@ class RawWorker:
         return output
 
     def cleanup(self):
-        if self.tmp is not None:
-            self.__delete_temp_dir()
-            self.tmp = None
-        if self.__sftp is not None:
-            self.__sftp.close()
+        with self.lock:
+            if self.tmp is not None:
+                self.__delete_temp_dir()
+                self.tmp = None
+            if self.__sftp is not None:
+                self.__sftp.close()
+                self.__sftp = None
 
 class RawRunner:
     targets: list[str]
@@ -160,6 +165,8 @@ class RawRunner:
         self.push = args.push
         self.show = args.show
         self.get_tty = not(args.notty)
+        self.stop_event = Event()
+        self.workers: list[RawWorker] = []
 
         # If the you want to just push/pull files, disable the temp dir creation
         if len(self.commands) == 0:
@@ -177,14 +184,19 @@ class RawRunner:
                 port=worker.connection.port,
                 msg="Job Started"
             )
+
+            if self.stop_event.is_set(): return
             worker.prepare()
+            self.workers.append(worker)
 
             try:
                 # Push needed files
                 for filename in self.push:
+                    if self.stop_event.is_set(): return
                     worker.push(filename)
 
                 # Execute commands
+                if self.stop_event.is_set(): return
                 output = worker.exec(self.commands)
                 StarescExporter.import_output(output)
                 if self.show:
@@ -196,9 +208,11 @@ class RawRunner:
 
                 # Pull resulting files
                 for filename in self.pull:
+                    if self.stop_event.is_set(): return
                     worker.pull(filename)
                 
                 # Cleanup
+                if self.stop_event.is_set(): return
                 worker.cleanup()
                 self.logger.raw(
                     target=worker.connection.hostname,
@@ -213,11 +227,12 @@ class RawRunner:
 
         except Exception as e:
             self.logger.error(f"{type(e).__name__}: {e}")
+            self.logger.debug(traceback.format_exc())
             return
 
     def run(self, targets: list[str]):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures = []
+            futures: list[concurrent.futures.Future] = []
             for target in targets:
                 if len(target) == 0: continue
                 if not target.startswith("ssh://"):
@@ -225,7 +240,14 @@ class RawRunner:
                     continue
                 futures.append(executor.submit(RawRunner.launch, self, target))
 
-            for future in concurrent.futures.as_completed(futures):
-                target = targets[futures.index(future)]
-                self.logger.debug(f"Finished scan on target {target}")
+            try:
+                for future in concurrent.futures.as_completed(futures):
+                    target = targets[futures.index(future)]
+                    self.logger.debug(f"Finished scan on target {target}")
+            except KeyboardInterrupt:
+                for future in futures:
+                    future.cancel()
+                    self.stop_event.set()
+                    for worker in self.workers:
+                        worker.cleanup()
         StarescExporter.export()
