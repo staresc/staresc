@@ -13,24 +13,24 @@ import encodings.idna # Needed for pyinstaller
 
 class RawWorker:
 
-    def __init__(self, logger, connection_string, make_temp=True, tmp_base="/tmp", get_tty=True):
+    def __init__(self, logger, connection_string, make_temp=True, no_sftp=False, tmp_base="/tmp", get_tty=True):
         self.logger = logger
         self.staresc = Staresc(connection_string)
         self.connection = self.staresc.connection
-        self.__sftp = None
+        self.sftp = None
+        self.enable_sftp = not(no_sftp)
         self.make_temp = make_temp
         self.tmp_base = tmp_base
         self.tmp = "."
         self.get_tty = get_tty
         self.lock = Lock()
 
-    @property
-    def sftp(self):
-        # Lazy sftp initialization; useful for targets that don't have sftp_server
-        # because you can use Raw mode without using sftp features and it never gets initialized
-        if self.__sftp is None:
-            self.__sftp = paramiko.SFTPClient.from_transport(self.connection.client.get_transport())
-        return self.__sftp
+    def __init_sftp(self):
+        try:
+            self.sftp = paramiko.SFTPClient.from_transport(self.connection.client.get_transport())
+        except paramiko.SSHException as e:
+            self.logger.error("Failed to initialize the SFTP subsystem. Retry with --no-sftp")
+            raise e
 
     def __make_temp_dir(self) -> str:
         from datetime import datetime
@@ -88,8 +88,11 @@ class RawWorker:
             
     def prepare(self):
         self.staresc.prepare()
+        if self.enable_sftp and (self.__init_sftp() is not None):
+            return False
         if self.make_temp:
             self.__make_temp_dir()
+        return True
 
     def push(self, path):
         filename = os.path.basename(path)
@@ -165,9 +168,10 @@ class RawRunner:
         self.pull = args.pull
         self.push = args.push
         self.show = args.show
-        self.get_tty = not(args.notty)
+        self.get_tty = not(args.no_tty)
         self.stop_event = Event()
         self.workers: list[RawWorker] = []
+        self.no_sftp = args.no_sftp
 
         # If the you want to just push/pull files, disable the temp dir creation
         if len(self.commands) == 0:
@@ -179,7 +183,13 @@ class RawRunner:
     def launch(self, connection_string: str) -> None:
         """Launch the commands"""
         try:
-            worker = RawWorker(self.logger, connection_string, self.make_temp, get_tty=self.get_tty)
+            worker = RawWorker(
+                logger=self.logger, 
+                connection_string=connection_string, 
+                make_temp=self.make_temp, 
+                no_sftp=self.no_sftp, 
+                get_tty=self.get_tty
+                )
             self.logger.raw(
                 target=worker.connection.hostname,
                 port=worker.connection.port,
@@ -187,7 +197,8 @@ class RawRunner:
             )
 
             if self.stop_event.is_set(): return
-            worker.prepare()
+            if not worker.prepare():
+                return
             self.workers.append(worker)
 
             try:
