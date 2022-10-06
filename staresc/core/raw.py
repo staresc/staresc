@@ -17,7 +17,7 @@ class RawWorker:
         self.logger = logger
         self.staresc = Staresc(connection_string)
         self.connection = self.staresc.connection
-        self.sftp = None
+        self.__sftp = None
         self.enable_sftp = not(no_sftp)
         self.make_temp = make_temp
         self.tmp_base = tmp_base
@@ -26,12 +26,21 @@ class RawWorker:
         self.lock = Lock()
 
     def __init_sftp(self):
+        if not self.enable_sftp:
+            raise Exception("An SFTP action was requested but --no-sftp was specified.")
         try:
-            self.sftp = paramiko.SFTPClient.from_transport(self.connection.client.get_transport())
+            paramiko.SFTPClient.from_transport(self.connection.client.get_transport())
+            return self.__sftp
         except paramiko.SSHException as e:
             self.logger.error("Failed to initialize the SFTP subsystem. Retry with --no-sftp")
             raise e
 
+    @property
+    def sftp(self):
+        if self.__sftp is None:
+            self.sftp = self.__init_sftp()
+        return self.__sftp
+        
     def __make_temp_dir(self) -> str:
         from datetime import datetime
         dirname = f"staresc_{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -88,8 +97,6 @@ class RawWorker:
             
     def prepare(self):
         self.staresc.prepare()
-        if self.enable_sftp and (self.__init_sftp() is not None):
-            return False
         if self.make_temp:
             self.__make_temp_dir()
         return True
