@@ -12,3 +12,4 @@ test_targets.txt
 .vscode
 docker_targets.txt
 targets.txt
+staresc_*
