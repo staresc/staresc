@@ -9,6 +9,7 @@ I'm @5amu, welcome!
 
 import argparse
 import os
+import sys
 from tabnanny import check
 from staresc.core.check import Checker
 from staresc.core.raw import RawRunner
@@ -48,9 +49,10 @@ def cliparse() -> argparse.Namespace:
     rawmode_params.add_argument('--push', metavar='filename', action='append', default=[], help='push files to the target')
     rawmode_params.add_argument('--pull', metavar='filename', action='append', default=[], help='pull files from the target')
     rawmode_params.add_argument('--exec', metavar='file', action='store', help='equivalent to "--push file --command ./file"')
-    rawmode_params.add_argument('--no-tmp', default=False, action='store_true', help='skip creating temp folder and cd-ing into it')
     rawmode_params.add_argument('--show', default=False, action='store_true', help='show commands output in the terminal')
-    rawmode_params.add_argument('--notty', default=False, action='store_true', help='SSH only: don\'t request a TTY')
+    rawmode_params.add_argument('--no-sftp', default=False, action='store_true', help='disable the SFTP subsystem; implies --no-tmp')
+    rawmode_params.add_argument('--no-tmp', default=False, action='store_true', help='skip creating temp folder and cd-ing into it; always true when --no-sftp is set')
+    rawmode_params.add_argument('--no-tty', default=False, action='store_true', help='SSH only: don\'t request a TTY')
 
 
     connection_help  = "schema://user:auth@host:port\n"
@@ -97,7 +99,7 @@ def starttest():
         r = unittest.TextTestRunner().run(suite)
         logger.info("End of tests")
         if not r.wasSuccessful():
-            exit(1)
+            sys.exit(1)
     
     except Exception as e:
         logger.error(e)
@@ -150,15 +152,21 @@ def main():
             args.push.append(args.exec)
             args.command.append('./' + os.path.basename(args.exec))
 
+        if args.no_sftp:
+            args.no_tmp = True
+            if len(args.push) > 0 or len(args.pull) > 0:
+                logger.error("You can't use --push and --pull when --no-sftp is specified.")
+                sys.exit(1)
+
         StarescExporter.register_handler(StarescRawHandler(""))
         rr = RawRunner(args, logger)
         rr.run(targets)
-        exit(0)
+        sys.exit(0)
     
     if args.check:
         checker = Checker(logger=logger)
         checker.run(targets=targets)
-        exit(0)
+        sys.exit(0)
 
 
     if not args.plugins:

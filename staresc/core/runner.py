@@ -53,6 +53,7 @@ class StarescRunner:
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
             for target in targets:
+                if len(target) == 0: continue
                 futures.append(executor.submit(StarescRunner.scan, self, target, plugins))
                 self.logger.debug(f"Started scan on target {target}")
 

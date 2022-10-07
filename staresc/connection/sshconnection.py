@@ -113,7 +113,7 @@ class SSHConnection(Connection):
             # stdin
             cmd, 
             # stdout
-            b''.join(chan.makefile('rb', bufsize)).rstrip(b"\r\n").decode("utf-8"),
+            b''.join(chan.makefile('rb', bufsize)).rstrip(b"\r\n").decode("utf-8", errors='ignore'),
             # stderr 
-            b''.join(chan.makefile_stderr('rb', bufsize)).rstrip(b"\r\n").decode("utf-8"), 
+            b''.join(chan.makefile_stderr('rb', bufsize)).rstrip(b"\r\n").decode("utf-8", errors='ignore'), 
         )
