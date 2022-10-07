@@ -108,8 +108,8 @@ class Logger:
         if not o.is_vuln_found():
             return
 
-        host = o.target.get_hostname(o.target.connection)
-        port = o.target.get_port(o.target.connection)
+        host = o.target.hostname
+        port = o.target.port
 
         e = {
             "target"   : f"{host}:{port}",

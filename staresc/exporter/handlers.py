@@ -106,8 +106,8 @@ class StdoutHandler(Handler):
         self.logger.print_if_vuln(o)
 
         if o.is_vuln_found():
-            host = o.target.get_hostname(o.target.connection)
-            port = o.target.get_port(o.target.connection)
+            host = o.target.hostname
+            port = o.target.port
 
             if f"{host}:{port}" not in self.scan_summary:
                 self.scan_summary[f"{host}:{port}"] = {}
