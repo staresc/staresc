@@ -1,20 +1,18 @@
-<h1 align="center">staresc</h1>
+<h1 align="center"><img src="assets/cover.png"></h1>
 <h4 align="center">fast and reliable local vulnerability scanner</h4>
 
+</br>
+
 <p align="center">
-
-<a href="https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml" alt="Standalone Executable">
+<a href="https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml" alt="executables">
 <img src="https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml/badge.svg"></a>
-
-<a href="https://github.com/staresc/staresc/actions/workflows/make-documentation.yml" alt="Make Documentation">
+<a href="https://github.com/staresc/staresc/actions/workflows/make-documentation.yml" alt="documentation">
 <img src="https://github.com/staresc/staresc/actions/workflows/make-documentation.yml/badge.svg"></a>
-
-<a href="https://github.com/staresc/staresc/actions/workflows/tests.yml" alt="Unit Tests">
+<a href="https://github.com/staresc/staresc/actions/workflows/tests.yml" alt="tests">
 <img src="https://github.com/staresc/staresc/actions/workflows/tests.yml/badge.svg"></a>
-
 </p>
 
----
+
 
 Initially developed as an internal tool for [@5amu](https://github.com/5amu)'s day job, thanks to [@cekout](https://github.com/cekout) it became clear that the software could be generalized for a larger audience. So it became public. The project is heavily inspired by [nuclei](https://github.com/projectdiscovery/nuclei), but it targets another audience, such as professionals testing network objects with SSH or Telnet credentials. 
 
