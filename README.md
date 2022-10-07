@@ -1,4 +1,4 @@
-<h1 align="center"><img src="assets/cover.png"></h1>
+<h1 align="center"><img width="200px" src="assets/cover.png" alt="Staresc"></h1>
 <h4 align="center">fast and reliable local vulnerability scanner</h4>
 
 </br>
