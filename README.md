@@ -5,7 +5,8 @@ Initially developed as an internal tool for [@5amu](https://github.com/5amu)'s d
 
 ## Usage
 
-```usage: staresc [-h] [-d] [-c C] [-ocsv filename] [-oxlsx filename] [-ojson filename] [-oall pattern] [-t] [-v] [-f F] [--test-plugins] [connection]
+```
+usage: staresc [-h] [-d] [-c C] [-ocsv filename] [-oxlsx filename] [-ojson filename] [-oall pattern] [-t] [-v] [-f F] [--test-plugins] [connection]
 
 Make SSH/TELNET PTs great again!
 
