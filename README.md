@@ -1,5 +1,5 @@
 <h1 align="center">Staresc</h1>
-<h4 align="center">automatic and extendable vulnerability assessment over SSH</h4>
+<h4 align="center">Automatic and extendable vulnerability assessment over SSH</h4>
 
 Initially developed as an internal tool for [@5amu](https://github.com/5amu)'s day job, thanks to [@cekout](https://github.com/cekout) it became clear that the software could be generalized for a larger audience. So it became public. The project is heavily inspired by [nuclei](https://github.com/projectdiscovery/nuclei), but it targets another audience, such as professionals testing network objects with SSH or Telnet credentials. 
 
