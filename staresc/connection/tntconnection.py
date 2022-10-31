@@ -17,7 +17,7 @@ class TNTConnection(Connection):
         super().__init__(connection)
 
 
-    def connect(self) -> None:
+    def connect(self, timeout:float = Connection.command_timeout) -> None:
         """TNT implementation to connect to the target server
 
         It uses telnetlib to handle Telnet communication. 
@@ -81,6 +81,6 @@ class TNTConnection(Connection):
             raise CommandError(msg)
 
         # extract from stdout the output of cmd
-        stdout = re.split(delimiter_canary.decode('ascii') + '\s*\r\n', stdout.decode('ascii'))[-2]
+        stdout = re.split(delimiter_canary.decode('ascii') + r'\s*\r\n', stdout.decode('ascii'))[-2]
         stdout = stdout.rstrip('\r\n')
         return cmd, stdout, ""

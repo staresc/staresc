@@ -29,16 +29,16 @@ class Connection():
 
     # static fields
     __parse_regex = re.compile(
-        "^([a-z]+)://" +    # scheme
-        "([^:]+)" +         # username
-        ":(.*)@" +          # password
-        "(" +               # host parse start
-        "((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?){4}" + # IP
-        "|" +               # or
-        "([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*\.)+[a-zA-Z]{2,}" + # Hostname
-        ")" +               # host parse end
-        ":([0-9]{1,5})" +   # port
-        "/?$"               # optional trailing slash
+        r"^([a-z]+)://" +    # scheme
+        r"([^:]+)" +         # username
+        r":(.*)@" +          # password
+        r"(" +               # host parse start
+        r"((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?){4}" + # IP
+        r"|" +               # or
+        r"([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*\.)+[a-zA-Z]{2,}" + # Hostname
+        r")" +               # host parse end
+        r":([0-9]{1,5})" +   # port
+        r"/?$"               # optional trailing slash
         )
 
     command_timeout: float = 60
@@ -112,7 +112,7 @@ class Connection():
         self.client.close()
 
 
-    def connect(self, ispubkey: bool) -> None:
+    def connect(self, timeout:float) -> None:
         """Interface to make the connection connect to the target"""
         pass
 
