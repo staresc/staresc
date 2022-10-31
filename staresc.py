@@ -61,7 +61,7 @@ def main() -> int:
     # transfers on the targets. 
     elif args.mode == 'raw':
         Exporter.register_handler(RawHandler(""))
-        exit_code = Raw(args, logger, args.exec).run(targets)
+        exit_code = Raw(args, args.exec).run(targets)
 
     # subcommand check handles the reachability and authentication checks on
     # the targets in scope. This mode should produce a csv output for easy 

@@ -3,7 +3,7 @@ from staresc.connection import Connection
 
 class Output():
     target: Connection
-    plugin: Plugin
+    plugin: Plugin|None
     test_results: list[dict[str, str]]
     test_results_parsed: list[dict[str, str]]
     test_success: list[bool]
@@ -12,7 +12,7 @@ class Output():
     vuln_found: bool
     message: str
 
-    def __init__(self, target: Connection, plugin: Plugin, test_results: list = [], test_results_parsed: list = [], test_success: list[bool] = [], test_timeout: list[bool] = [], parsed = False, vuln_found: bool = False, message:str = ""):
+    def __init__(self, target: Connection, plugin: Plugin|None, test_results: list = [], test_results_parsed: list = [], test_success: list[bool] = [], test_timeout: list[bool] = [], parsed = False, vuln_found: bool = False, message:str = ""):
         self.target = target
         self.plugin = plugin
         self.test_results = test_results

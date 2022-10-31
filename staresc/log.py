@@ -108,6 +108,9 @@ class Logger:
         if not o.is_vuln_found():
             return
 
+        if o.plugin is None:
+            return
+
         host = o.target.hostname
         port = o.target.port
 

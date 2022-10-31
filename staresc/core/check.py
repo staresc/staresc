@@ -14,7 +14,6 @@ class Checker:
 
 
     def check(self, connection_string: str):
-
         try:
             s = SSHConnection(connection_string)
 
