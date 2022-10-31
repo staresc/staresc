@@ -161,7 +161,6 @@ class Parser:
         Attributes:
            parser_content -- dict containing data of the given parser read from the YAML file
         """
-        # TODO user can specify more parts in yaml file. VERY LOW PRIORITY!!
         self.parts        = self.__get_part(parser_content)
         self.rule_type    = self.__get_rule_type(parser_content)
         self.condition    = self.__get_condition(parser_content)
@@ -175,4 +174,4 @@ class Parser:
         Attributes:
             result -- dict containing the result of the command executed on the target machine, it has the following format: {"stdout": command_stdout, "stderr": command_stderr}
         """
-        pass
+        return False, {}

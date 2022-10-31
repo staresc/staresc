@@ -58,7 +58,7 @@ class Test:
         """Get the Command"""
         return self.command
 
-    def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:          #TODO implement support for matchers and mixed (pipe of matcher and extractors) parsing, problem: matchers return boolean, not dict[str, str]
+    def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         """Run the parsers on the result of the Command
         The parsers are run following a pipeline-like structure:
         the output of the parser N°1 is passed as input to the parser N°2,
@@ -72,7 +72,7 @@ class Test:
         Attributes:
            result -- dict containing the result of the command executed on the target machine, it has the following format: {"stdout": command_stdout, "stderr": command_stderr}"""
         piped_result: dict[str, str] = result
-        piped_boolean_result: bool = True                           #TODO handle not only and condition in piped matchers
+        piped_boolean_result: bool = True
 
         for parser in self.parsers:
             tmp_bool, piped_result = parser.parse(piped_result)

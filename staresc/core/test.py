@@ -15,7 +15,7 @@ class Tester:
 
     def test(self) -> int:
         suite = unittest.TestSuite()
-        [ suite.addTest(test.StarescTests(t)) for t in test.StarescTests.TESTLIST ]
+        [ suite.addTest(test.IntegrityTests(t)) for t in test.IntegrityTests.TESTLIST ]
 
         t_args = {
             "target" : test.start_server,

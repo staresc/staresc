@@ -20,7 +20,6 @@ class Plugin:
 
         This is the ID of the plugin, it is used as a unique identifier for the plugin
     """
-    # TODO change name, now "matcher" is preserved for retro-compatibility
     distribution_matcher: str
     """Distribution Matcher
 

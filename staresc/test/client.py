@@ -25,7 +25,7 @@ COMMAND_ANSWER = [ "whoami" , "user" ]
 
 
 
-class StarescTests(unittest.TestCase):
+class IntegrityTests(unittest.TestCase):
 
     TESTLIST = [
         "test_unreachable_target",

@@ -75,6 +75,7 @@ class Matcher(Parser):
             "word"  : self.__match_word
         }
         is_matched, tmp_res = MATCHER_TO_FUNC[self.rule_type](self.parts, result)
-        is_matched ^= self.invert_match         # is_matched = invert_match ? !is_matched : is_matched
+        # is_matched = invert_match ? !is_matched : is_matched
+        is_matched ^= self.invert_match
         return (is_matched, tmp_res)
 

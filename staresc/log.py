@@ -119,18 +119,18 @@ class Logger:
             "r"        : "\033[0m",
         }
 
-        self.logger.vuln("", extra=e)
+        self.logger.vuln("", extra=e) #type: ignore
 
 
     def raw(self, target:str, port:str, msg:str):
         e = {
             "target": f"{target}:{port}",
         }     
-        self.logger.raw(msg, extra=e)
+        self.logger.raw(msg, extra=e) #type: ignore
 
     
     def check(self, target:str, msg:str):
         e = {
             "target": target,
         }     
-        self.logger.check(msg, extra=e)
+        self.logger.check(msg, extra=e) #type: ignore
