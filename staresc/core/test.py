@@ -34,6 +34,6 @@ class Tester:
                 return 1
 
         except Exception as e:
-            self.logger.error(e)
+            self.logger.error(str(e))
         
         return 0

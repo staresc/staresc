@@ -1,6 +1,8 @@
-import paramiko
-import socket
 import threading
+import socket
+
+import paramiko
+import paramiko.server
 
 
 class StarescTestSSHServer(paramiko.server.ServerInterface):
@@ -14,12 +16,12 @@ class StarescTestSSHServer(paramiko.server.ServerInterface):
     
     def check_auth_password(self, username, password):
         if username == "user" and password == "pass":
-            return paramiko.AUTH_SUCCESSFUL
+            return paramiko.AUTH_SUCCESSFUL  # type: ignore
         else:
-            return paramiko.AUTH_FAILED
+            return paramiko.AUTH_FAILED  # type: ignore
 
     def check_channel_request(self, kind, channelID):
-        return paramiko.OPEN_SUCCEEDED
+        return paramiko.OPEN_SUCCEEDED  # type: ignore
 
     def get_banner(self):
         return ("Staresc Test SSH Server\n\r", "EN")
