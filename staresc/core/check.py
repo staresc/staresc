@@ -15,17 +15,9 @@ class Checker:
 
 
     def check(self, connection_string: str):
+
         try:
             s = Scanner(connection_string)
-            s.prepare(timeout=1)
-
-        except AuthenticationError:
-            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Wrong credentials")
-            return
-
-        except ConnectionError:
-            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Not reachable")
-            return
 
         except ConnectionStringError:
             try:
@@ -40,6 +32,18 @@ class Checker:
         
             except Exception as e:
                 print(type(e), e)
+                return
+        
+        try:
+            s.prepare(timeout=1)
+
+        except AuthenticationError:
+            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Wrong credentials")
+            return
+
+        except ConnectionError:
+            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Not reachable")
+            return
 
         self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}", msg="OK")
 
