@@ -1,6 +1,6 @@
 from queue import Queue
 
-from staresc.exporter.handlers import Handler
+from staresc.exporter.handler import Handler
 from staresc.output import Output
 
 class Exporter():
