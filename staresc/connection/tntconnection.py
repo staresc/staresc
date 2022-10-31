@@ -73,7 +73,7 @@ class TNTConnection(Connection):
 
         except (OSError,EOFError):
             msg = f"connection dropped while executing command: {cmd}"
-            raise CommandError
+            raise CommandError(msg)
 
         if (b'\r\n' + delimiter_canary + b'\r\n') not in stdout:
             # read_until() returned due to timeout
@@ -83,4 +83,4 @@ class TNTConnection(Connection):
         # extract from stdout the output of cmd
         stdout = re.split(delimiter_canary.decode('ascii') + '\s*\r\n', stdout.decode('ascii'))[-2]
         stdout = stdout.rstrip('\r\n')
-        return cmd, stdout, None
+        return cmd, stdout, ""

@@ -1,43 +1,56 @@
 import os
 import concurrent.futures
 import argparse
+from datetime import datetime
 
 import paramiko
+from paramiko import SFTPClient
 import tqdm
 
+from staresc.connection.sshconnection import SSHConnection
 from staresc.log import Logger
-from staresc.core import Scanner
 from staresc.exporter import Exporter
 from staresc.output import Output
 from staresc.exceptions import CommandError
 
 class RawWorker:
+    connection:SSHConnection
+    tmp_base:str
+    tmp:str
+    make_temp:bool
+    __sftp:SFTPClient|None
 
-    def __init__(self, logger, connection_string, make_temp=True, tmp_base="/tmp", get_tty=True):
-        self.logger = logger
-        self.staresc = Scanner(connection_string)
-        self.connection = self.staresc.connection
-        self.__sftp = None
+    def __init__(self, connection_string, make_temp=True, tmp_base="/tmp", get_tty=True):
+        self.logger = Logger()
+        self.connection = SSHConnection(connection_string)
         self.make_temp = make_temp
         self.tmp_base = tmp_base
         self.tmp = "."
         self.get_tty = get_tty
 
     @property
-    def sftp(self):
+    def sftp(self) -> SFTPClient|None:
         # Lazy sftp initialization; useful for targets that don't have sftp_server
         # because you can use Raw mode without using sftp features and it never gets initialized
-        if self.__sftp is None:
-            self.__sftp = paramiko.SFTPClient.from_transport(self.connection.client.get_transport())
+        if self.__sftp is not None:
+            return self.__sftp
+
+        transport = self.connection.client.get_transport()
+        if transport:
+            self.__sftp = paramiko.SFTPClient.from_transport(transport)
+
         return self.__sftp
+    
 
     def __make_temp_dir(self) -> str:
-        from datetime import datetime
+        if not self.sftp:
+            raise Exception
+
         dirname = f"staresc_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        dirpath = os.path.join(self.tmp_base, dirname)
-        self.sftp.mkdir(dirpath)
-        self.tmp = dirpath
-        return dirpath
+        self.tmp = os.path.join(self.tmp_base, dirname)
+        self.sftp.mkdir(self.tmp)
+        return self.tmp
+
 
     def __delete_temp_dir(self):
         from stat import S_ISDIR
@@ -71,7 +84,7 @@ class RawWorker:
                 self.tqdm = tqdm.tqdm(
                     range(tot), 
                     leave=False, 
-                    disable=None, 
+                    disable=False, 
                     dynamic_ncols=True, 
                     desc=self.title, 
                     unit="B", 
@@ -86,7 +99,7 @@ class RawWorker:
                 self.tqdm.close()
             
     def prepare(self):
-        self.staresc.prepare()
+        self.connection.connect()
         if self.make_temp:
             self.__make_temp_dir()
 
@@ -96,7 +109,7 @@ class RawWorker:
 
         self.logger.raw(
             target=self.connection.hostname,
-            port=self.connection.port,
+            port=str(self.connection.port),
             msg=f"Pushing {filename} to {dest}"
         )
 
@@ -116,7 +129,7 @@ class RawWorker:
         dest = os.path.join(dest_dir, base_filename)
         self.logger.raw(
             target=self.connection.hostname,
-            port=self.connection.port,
+            port=str(self.connection.port),
             msg=f"Pulling {filename} to {dest}"
         )
         title = Logger.progress_msg.format(
@@ -132,13 +145,12 @@ class RawWorker:
             try:
                 self.logger.raw(
                     target=self.connection.hostname,
-                    port=self.connection.port,
+                    port=str(self.connection.port),
                     msg=f"Executing {cmd}"
                 )
-                cmd = self.staresc._get_absolute_cmd(cmd)
                 if self.make_temp:
                     cmd = f"cd {self.tmp} ; " + cmd
-                stdin, stdout, stderr = self.connection.run(cmd, timeout=None, get_pty=self.get_tty)
+                stdin, stdout, stderr = self.connection.run(cmd, timeout=0, get_pty=self.get_tty)
                 output.add_test_result(stdin, stdout, stderr)
             except CommandError:
                 output.add_timeout_result(stdin=cmd)
@@ -177,7 +189,7 @@ class Raw:
             worker = RawWorker(self.logger, connection_string, self.make_temp, get_tty=self.get_tty)
             self.logger.raw(
                 target=worker.connection.hostname,
-                port=worker.connection.port,
+                port=str(worker.connection.port),
                 msg="Job Started"
             )
             worker.prepare()

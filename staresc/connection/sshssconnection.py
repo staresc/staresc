@@ -85,7 +85,7 @@ class SSHSSConnection(Connection):
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
             raise AuthenticationError(msg)
 
-        except (paramiko.SSHException, paramiko.ssh_exception.NoValidConnectionsError, TimeoutError):
+        except (paramiko.SSHException, paramiko.ChannelException, TimeoutError):
             msg = f"An error occured when trying to connect"
             raise ConnectionError(msg)
             
@@ -111,8 +111,8 @@ class SSHSSConnection(Connection):
         self.stdin.write(canary_cmd + '\n')
         self.stdin.flush()
 
+        tmpout = []
         try:
-            tmpout = []
             for line in self.stdout:
                 # get rid of 'coloring and formatting' special characters
                 line = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]').sub('', line).replace('\b', '').replace('\r', '')
@@ -128,6 +128,7 @@ class SSHSSConnection(Connection):
 
             if tmpout and canary_cmd in tmpout[-1]:
                 tmpout.pop()
+                
             if tmpout and cmd in tmpout[0]:
                 tmpout.pop(0)
 

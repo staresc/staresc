@@ -91,11 +91,7 @@ class Scanner():
         cmd  = f"{self.__which(bin)} {args}" 
         return cmd
 
-    def do_check(self, plugin: Plugin) -> Output:
-        """Performs the actual chercks"""
-        if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
-            return None
-
+    def do_check(self, plugin: Plugin) -> Output|None:
         plugin_output = Output(target=self.connection, plugin=plugin)
         # Run all commands and return the output
 

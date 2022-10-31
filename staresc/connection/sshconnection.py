@@ -68,13 +68,17 @@ class SSHConnection(Connection):
 
         try:
             self.client.connect(**paramiko_args)
-            self.client.get_transport().set_keepalive(5)
+            transport = self.client.get_transport()
+            if transport:
+                transport.set_keepalive(5)
+            else:
+                logger.debug(f"couldn't get transport for {self.hostname}")
 
         except paramiko.AuthenticationException:
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
             raise AuthenticationError(msg)
 
-        except (paramiko.SSHException, paramiko.ssh_exception.NoValidConnectionsError, TimeoutError):
+        except (paramiko.SSHException, paramiko.ChannelException, TimeoutError):
             msg = f"An error occured when trying to connect"
             raise ConnectionError(msg)
             
@@ -91,7 +95,14 @@ class SSHConnection(Connection):
             StarescCommandError -- The provided command timed out
         """
         try:
-            chan = self.client.get_transport().open_session()
+            transport = self.client.get_transport()
+            if transport:
+                chan = transport.open_session()
+                
+            else:
+                msg = f"couldn't open session"
+                raise ConnectionError(msg)
+
             chan.settimeout(timeout)
 
             # Sudo usually requires a pty, but not sure if we will run commands with it, so for now it will be disabled
@@ -108,6 +119,9 @@ class SSHConnection(Connection):
         except TimeoutError:
             msg = f"command {cmd} timed out"
             raise CommandError(msg)
+
+        except ConnectionError as e:
+            raise e
          
         return (
             # stdin

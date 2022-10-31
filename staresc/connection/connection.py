@@ -1,6 +1,9 @@
 import re
+from telnetlib import Telnet
 from typing import Tuple
 from functools import cached_property
+
+from paramiko import SSHClient
 
 class Connection():
     """Connection is the class handling connections
@@ -45,6 +48,9 @@ class Connection():
     will not. Changing this value might generate false negatives in the result    
     """
 
+    client:Telnet|SSHClient
+
+
     def __init__(self, connection: str) -> None:
         """Class constructor
 
@@ -53,17 +59,21 @@ class Connection():
         """
         self.connection = connection
 
+
     @cached_property
     def scheme(self) -> str:
         return Connection.parse(self.connection)['scheme']
+
 
     @cached_property
     def hostname(self) -> str:
         return Connection.parse(self.connection)['hostname']
 
+
     @cached_property
     def port(self) -> int:
         return int(Connection.parse(self.connection)['port'])
+
 
     @cached_property
     def credentials(self)-> Tuple[str, str]:
@@ -73,11 +83,12 @@ class Connection():
             return p['username'], p['password'].replace("\\", "/")
         return p['username'], p['password']
 
+
     @staticmethod
     def parse(connection: str) -> dict[str, str]:
         match = Connection.__parse_regex.search(connection)
         if not match:
-            return None
+            return {}
         return {
             'scheme':   match.group(1),
             'hostname': match.group(4),
@@ -85,6 +96,7 @@ class Connection():
             'username': match.group(2),
             'password': match.group(3)
         }
+
 
     @staticmethod
     def is_connection_string(connection: str) -> bool:
@@ -94,13 +106,16 @@ class Connection():
             return False
         return bool(tmp['hostname'] and tmp['username'] and tmp['password']) 
 
+
     def close(self) -> None:
         """Close the connection"""
         self.client.close()
 
+
     def connect(self, ispubkey: bool) -> None:
         """Interface to make the connection connect to the target"""
         pass
+
 
     def run(self, cmd: str) -> Tuple[str, str, str]:
         """Interface to run a command on the target machine 
@@ -108,5 +123,5 @@ class Connection():
         it uses the underlying connection and enforces the return values in the
         form of a tuple composed by stdin, stdout and stderr
         """
-        pass
+        return '','',''
 
