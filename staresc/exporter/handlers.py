@@ -93,7 +93,7 @@ class CSVHandler(Handler):
             csv_writer.writerows(out_rows)
 
 
-class StdoutHandler(Handler):
+class ScanHandler(Handler):
 
     logger: Logger = Logger()
     scan_summary: dict

@@ -1,3 +1,15 @@
+
+class ParseError(Exception):
+    """Exception raised when the argument parsing fails
+
+    Attributes:
+        msg -- meesage to be displayed
+    """
+
+    def __init__(self, msg: str):
+        super().__init__(msg)
+
+
 class ConnectionStringError(Exception):
     """
     Exception raised if the connection string is invalid
