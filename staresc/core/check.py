@@ -3,21 +3,20 @@ import platform
 import os
 
 
+from staresc.connection.sshconnection import SSHConnection
 from staresc.log import Logger
 from staresc.exceptions import AuthenticationError, ConnectionError, ConnectionStringError
-from staresc.core import Scanner
-
 
 class Checker:
 
-    def __init__(self, logger: Logger) -> None:
-        self.logger = logger
+    def __init__(self) -> None:
+        self.logger = Logger()
 
 
     def check(self, connection_string: str):
 
         try:
-            s = Scanner(connection_string)
+            s = SSHConnection(connection_string)
 
         except ConnectionStringError:
             try:
@@ -35,17 +34,17 @@ class Checker:
                 return
         
         try:
-            s.prepare(timeout=1)
+            s.connect(timeout=1)
 
         except AuthenticationError:
-            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Wrong credentials")
+            self.logger.check(target=f"{s.hostname}:{s.port}",msg="Wrong credentials")
             return
 
         except ConnectionError:
-            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Not reachable")
+            self.logger.check(target=f"{s.hostname}:{s.port}",msg="Not reachable")
             return
 
-        self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}", msg="OK")
+        self.logger.check(target=f"{s.hostname}:{s.port}", msg="OK")
 
 
     def run(self, targets: list[str]):

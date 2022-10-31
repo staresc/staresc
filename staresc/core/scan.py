@@ -1,12 +1,14 @@
-import re
+import concurrent.futures
 from functools import lru_cache
 
 from staresc.connection import Connection, SCHEME_TO_CONNECTION
+from staresc.log import Logger
 from staresc.plugin_parser import Plugin
 from staresc.output import Output
+from staresc.exporter import Exporter
 from staresc.exceptions import CommandError, ConnectionStringError
 
-class Scanner():
+class ScanWorker():
     """Main component
     
     This is the main component, it is responsible for running scans on a single 
@@ -123,3 +125,58 @@ class Scanner():
             except CommandError as e:
                 plugin_output.add_timeout_result(stdin=cmd)
         return plugin_output
+
+
+class Scanner:
+    """StarescRunner is a factory for Staresc objects
+    
+    This class is responsible for parsing connection strings, parse plugins,
+    istance Staresc objects and run concurrent scans on targets (1 thread per 
+    target). Finally, it calls the exporters associated with the StarescExporter
+    class to produce the requested output. 
+    """
+
+    targets: list[str]
+    logger:  Logger
+
+    def __init__(self) -> None:
+        self.logger = Logger()
+
+
+    def __scan(self, connection_string: str, plugins: list[Plugin]) -> None:
+        """Launch the scan
+
+        Istance Staresc with connection string, prepare and run plugins commands
+        on targets.
+        """
+        
+        try:
+            worker = ScanWorker(connection_string)
+            worker.prepare()
+
+        except Exception as e:
+            self.logger.error(f"{type(e).__name__}: {e}")
+            return
+        
+        for plugin in plugins:
+            self.logger.debug(f"Scanning {connection_string} with plugin {plugin.id}")
+            try:
+                to_append = worker.do_check(plugin)
+                if to_append:
+                    Exporter.import_output(to_append)
+            except Exception as e:
+                self.logger.error(f"{type(e).__name__}: {e}")
+
+
+    def scan(self, targets: list[str], plugins: list[Plugin]) -> int:
+        """Actual runner for the whole program using 5 concurrent threads"""
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = []
+            for target in targets:
+                futures.append(executor.submit(Scanner.__scan, self, target, plugins))
+                self.logger.debug(f"Started scan on target {target}")
+
+            for future in concurrent.futures.as_completed(futures):
+                target = targets[futures.index(future)]
+                self.logger.debug(f"Finished scan on target {target}")
+        return 0

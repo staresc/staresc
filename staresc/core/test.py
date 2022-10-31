@@ -9,8 +9,8 @@ import staresc.test as test
 
 class Tester:
 
-    def __init__(self, logger: Logger) -> None:
-        self.logger = logger
+    def __init__(self) -> None:
+        self.logger = Logger()
 
 
     def test(self) -> int:

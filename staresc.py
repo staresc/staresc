@@ -11,7 +11,7 @@ import sys
 from traceback import print_exc
 
 import staresc.cli as cli
-from staresc.core import Runner, Checker, Raw, Tester
+from staresc.core import Scanner, Checker, Raw, Tester
 from staresc.exceptions import ParseError
 from staresc.exporter import Exporter, ScanHandler, RawHandler
 from staresc.log import Logger
@@ -55,7 +55,7 @@ def main() -> int:
     # particular vulnerability.
     if args.mode == 'scan':
         Exporter.register_handler(ScanHandler(""))        
-        exit_code = Runner(logger).scan(targets, cli.parse_plugins(args.plugins))
+        exit_code = Scanner().scan(targets, cli.parse_plugins(args.plugins))
 
     # subcommand raw handles the command parallel command execution and file
     # transfers on the targets. 
@@ -67,13 +67,13 @@ def main() -> int:
     # the targets in scope. This mode should produce a csv output for easy 
     # sharing and readability.
     elif args.mode == 'check':
-        exit_code = Checker(logger=logger).run(targets=targets)
+        exit_code = Checker().run(targets=targets)
     
     # not a subcommand, but test staresc integrity by spawning an SSH server
     # and launching pre-determined commands against it to test how staresc
     # would deal with it.
     elif args.test: 
-        return Tester(logger=logger).test()
+        return Tester().test()
 
     # unreachable code, written to warn if a dafuq moment happens. Worry only
     # if that error is ever printed, but should never be.
