@@ -52,6 +52,7 @@ def complete_log(o: Output):
         })
     return str(ret)
 
+
 COLUMNS_TO_FUNC:dict[str, Any] = {
     "Host IP"            : lambda x : str((Connection)(x.target.connection).hostname),
     "Port"               : lambda x : str((Connection)(x.target.connection).port),

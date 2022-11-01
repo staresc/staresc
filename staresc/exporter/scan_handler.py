@@ -13,10 +13,11 @@ class ScanHandler(Handler):
         self.scan_summary = {}
         super().__init__(out)
 
+
     def import_handler(self, o: Output):
         self.logger.print_if_vuln(o)
 
-        if o.is_vuln_found():
+        if o.is_vuln_found() and o.plugin is not None:
             host = o.target.hostname
             port = o.target.port
 
