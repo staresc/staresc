@@ -24,15 +24,15 @@ class Logger:
     }
 
     logger: logging.Logger
-    progress_msg:str = "[STARESC]:[{}]:[RAW]: {}"
+    progress_msg:str = "[RAW]:[{}]: {}"
 
     class LoggingFormatter(logging.Formatter):
 
         FORMATS = {
-            DEFAULT : '[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s',
-            VULN    : '[STARESC]:[%(target)s]:[%(c)s%(severity)s%(r)s]:[%(c)s%(plugin)s%(r)s]',
-            RAW     : '[STARESC]:[%(target)s]:[RAW]: %(message)s',
-            CHECK   : '[STARESC]:[%(asctime)s]:[CHECK]: %(target)s: %(message)s'
+            DEFAULT : '[%(asctime)s]:[%(levelname)s]: %(message)s',
+            VULN    : '[SCAN]:[%(target)s]:[%(c)s%(severity)s%(r)s]:[%(c)s%(plugin)s%(r)s]',
+            RAW     : '[RAW]:[%(target)s]: %(message)s',
+            CHECK   : '[CHECK]:[%(asctime)s]: %(target)s: %(message)s'
         }
 
         def format(self, record):  
