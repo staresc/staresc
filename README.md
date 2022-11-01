@@ -14,9 +14,6 @@
 <a href="https://github.com/staresc/staresc/actions/workflows/tests.yml" alt="tests">
 <img src="https://github.com/staresc/staresc/actions/workflows/tests.yml/badge.svg"></a>
 
-<a href="https://github.com/staresc/staresc/actions/workflows/requirements.yml" alt="tests">
-<img src="https://github.com/staresc/staresc/actions/workflows/requirements.yml/badge.svg"></a>
-
 </p>
 
 
