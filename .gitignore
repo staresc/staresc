@@ -1,4 +1,3 @@
-scripts
 __pycache__
 *.json
 src
@@ -13,3 +12,5 @@ test_targets.txt
 docker_targets.txt
 targets.txt
 staresc_*
+*egg-info
+build

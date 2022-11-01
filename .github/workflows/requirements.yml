@@ -21,7 +21,7 @@ jobs:
         run: python3 -m pip install pipreqs
 
       - name: Update requirements
-        run: pipreqs --savepath=- | grep -v 'setuptools' > requirements.txt
+        run: pipreqs --mode gt --savepath=- | grep -v 'setuptools' > requirements.txt
 
       - name: Commit Changes
         run: |
