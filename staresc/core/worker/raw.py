@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from stat import S_ISDIR
+from threading import Lock
 
 import paramiko
 from paramiko import SFTPClient
@@ -19,17 +20,21 @@ class RawWorker:
     tmp:str
     make_temp:bool
     get_tty:bool
+    lock:Lock
+    no_sftp:bool
     __sftp:SFTPClient|None
 
 
-    def __init__(self, connection_string:str, make_temp:bool=True, tmp_base:str="/tmp", get_tty:bool=True):
-        self.logger = Logger()
+    def __init__(self, connection_string:str, make_temp:bool=True, tmp_base:str="/tmp", get_tty:bool=True, no_sftp:bool = False):
+        self.logger     = Logger()
         self.connection = SSHConnection(connection_string)
-        self.make_temp = make_temp
-        self.tmp_base = tmp_base
-        self.tmp = "."
-        self.get_tty = get_tty
-        self.__sftp = None
+        self.make_temp  = make_temp
+        self.tmp_base   = tmp_base
+        self.tmp        = "."
+        self.get_tty    = get_tty
+        self.__sftp     = None
+        self.lock       = Lock()
+        self.no_sftp    = no_sftp
 
 
     @property
@@ -38,17 +43,26 @@ class RawWorker:
         # because you can use Raw mode without using sftp features and it never gets initialized
         if self.__sftp is not None:
             return self.__sftp
-
-        transport = self.connection.client.get_transport()
-        if transport:
-            self.__sftp = paramiko.SFTPClient.from_transport(transport)
-
-        return self.__sftp
+        
+        if self.no_sftp:
+            raise RawModeFileTransferError("an SFTP action was requested but --no-sftp was specified.")
+        
+        try:
+            transport = self.connection.client.get_transport()
+            if transport:
+                self.__sftp = paramiko.SFTPClient.from_transport(transport)
+                return self.__sftp
+            else:
+                raise RawModeFileTransferError("failed to initialize the SFTP subsystem. Retry with --no-sftp")
+            
+        except paramiko.SSHException as e:
+            self.logger.error("failed to initialize the SFTP subsystem. Retry with --no-sftp")
+            raise e
     
 
     def __make_temp_dir(self) -> str:
         if not self.sftp:
-            raise Exception
+            return ''
 
         dirname = f"staresc_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         self.tmp = os.path.join(self.tmp_base, dirname)
@@ -66,7 +80,7 @@ class RawWorker:
         def __isdir(path:str, sftp: SFTPClient):
             try:
                 mode = sftp.stat(path).st_mode
-                return False if mode is None else S_ISDIR(mode)
+                return mode is not None and S_ISDIR(mode)
                 
             except IOError:
                 return False
@@ -181,6 +195,7 @@ class RawWorker:
 
 
     def cleanup(self):
-        self.__delete_temp_dir()
-        if self.__sftp is not None:
-            self.__sftp.close()
+        with self.lock:
+            self.__delete_temp_dir()
+            if self.__sftp is not None:
+                self.__sftp.close()

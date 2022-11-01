@@ -69,6 +69,7 @@ def main() -> int:
             show=args.show,
             no_tmp=args.no_tmp,
             no_tty=args.notty,
+            no_sftp=args.no_sftp,
             timeout=args.timeout,
         ).run(targets)
 
