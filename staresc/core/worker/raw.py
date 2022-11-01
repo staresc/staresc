@@ -29,6 +29,7 @@ class RawWorker:
         self.tmp_base = tmp_base
         self.tmp = "."
         self.get_tty = get_tty
+        self.__sftp = None
 
 
     @property
