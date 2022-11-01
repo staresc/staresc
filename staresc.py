@@ -55,19 +55,28 @@ def main() -> int:
     # particular vulnerability.
     if args.mode == 'scan':
         Exporter.register_handler(ScanHandler(""))        
-        exit_code = Scanner().scan(targets, cli.parse_plugins(args.plugins))
+        exit_code = Scanner(timeout=args.timeout).scan(targets, cli.parse_plugins(args.plugins))
 
     # subcommand raw handles the command parallel command execution and file
     # transfers on the targets. 
     elif args.mode == 'raw':
         Exporter.register_handler(RawHandler(""))
-        exit_code = Raw(args, args.exec).run(targets)
+        exit_code = Raw(
+            commands=args.command,
+            pull=args.pull,
+            push=args.push,
+            exec=args.exec,
+            show=args.show,
+            no_tmp=args.no_tmp,
+            no_tty=args.no_tty,
+            timeout=args.timeout,
+        ).run(targets)
 
     # subcommand check handles the reachability and authentication checks on
     # the targets in scope. This mode should produce a csv output for easy 
     # sharing and readability.
     elif args.mode == 'check':
-        exit_code = Checker().run(targets=targets)
+        exit_code = Checker(timeout=args.timeout).run(targets=targets)
     
     # not a subcommand, but test staresc integrity by spawning an SSH server
     # and launching pre-determined commands against it to test how staresc

@@ -110,8 +110,8 @@ class RawWorker:
                 self.tqdm.close()
             
 
-    def prepare(self):
-        self.connection.connect()
+    def prepare(self, timeout:float):
+        self.connection.connect(timeout=timeout)
         if self.make_temp:
             self.__make_temp_dir()
 

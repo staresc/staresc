@@ -1,5 +1,5 @@
+import os
 import concurrent.futures
-import argparse
 
 from staresc.log import Logger
 from staresc.exporter import Exporter
@@ -7,23 +7,33 @@ from staresc.core.worker import RawWorker
 from staresc.exceptions import RawModeFileTransferError
 
 class Raw:
-    targets: list[str]
-    logger:  Logger
+    logger:Logger
+    commands:list[str]
+    push:list[str]
+    pull:list[str]
+    show:bool
+    get_tty:bool
+    no_tmp:bool
+    make_tmp:bool
+    timeout:float
 
-    def __init__(self, args: argparse.Namespace, exec: str) -> None:
-        self.logger  = Logger()
-        self.commands = args.command
-        self.pull = args.pull
-        self.push = args.push
-        self.show = args.show
-        self.get_tty = not(args.notty)
+    def __init__(self, timeout:float = 2.0, commands:list[str] = [], push:list[str] = [], pull:list[str] = [], exec:str = '', show:bool = False, no_tty:bool = False, no_tmp:bool = False) -> None:
+        self.logger   = Logger()
+        self.commands = commands
+        self.push     = push
+        self.pull     = pull
+        self.show     = show
+        self.get_tty  = not no_tty
+        self.no_tmp   = no_tmp
+        self.timeout  = timeout
+
+        if exec != '':
+            self.push.append(exec)
+            self.commands.append('./' + os.path.basename(exec))
 
         # If the you want to just push/pull files, disable the temp dir creation
-        if len(self.commands) == 0:
-            self.make_temp = False
-        else:
-            self.make_temp = not(args.no_tmp)
-
+        self.make_temp = len(self.commands) == 0 and not self.no_tmp
+        
 
     def launch(self, connection_string: str) -> None:
         """Launch the commands"""
@@ -34,7 +44,7 @@ class Raw:
                 port=str(worker.connection.port),
                 msg="Job Started"
             )
-            worker.prepare()
+            worker.prepare(self.timeout)
 
             try:
                 # Push needed files

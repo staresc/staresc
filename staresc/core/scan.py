@@ -14,11 +14,13 @@ class Scanner:
     target). Finally, it calls the exporters associated with the StarescExporter
     class to produce the requested output. 
     """
-    targets: list[str]
-    logger:  Logger
+    targets:list[str]
+    timeout:float
+    logger:Logger
 
-    def __init__(self) -> None:
-        self.logger = Logger()
+    def __init__(self, timeout:float = 2.0) -> None:
+        self.logger  = Logger()
+        self.timeout = timeout
 
 
     def __scan(self, connection_string: str, plugins: list[Plugin]) -> None:
@@ -29,7 +31,7 @@ class Scanner:
         """
         try:
             worker = ScanWorker(connection_string)
-            worker.prepare()
+            worker.prepare(timeout=self.timeout)
 
         except Exception as e:
             self.logger.error(f"{type(e).__name__}: {e}")

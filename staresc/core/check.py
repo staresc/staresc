@@ -8,9 +8,12 @@ from staresc.log import Logger
 from staresc.exceptions import AuthenticationError, ConnectionError, ConnectionStringError
 
 class Checker:
+    logger:Logger
+    timeout:float
 
-    def __init__(self) -> None:
-        self.logger = Logger()
+    def __init__(self, timeout:float = 2.0) -> None:
+        self.logger  = Logger()
+        self.timeout = timeout
 
 
     def check(self, connection_string: str):
@@ -33,7 +36,7 @@ class Checker:
                 return
         
         try:
-            s.connect(timeout=1)
+            s.connect(timeout=self.timeout)
 
         except AuthenticationError:
             self.logger.check(target=f"{s.hostname}:{s.port}",msg="Wrong credentials")

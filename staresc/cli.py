@@ -14,12 +14,13 @@ The connection string format is the following: schema://user:auth@host:port
 auth can be either a password or a path to ssh privkey, specified as \\\\path\\\\to\\\\privkey
 """
 
-DEFAULT_DIR = os.path.join(os.getenv("HOME","~/"), '.local/', 'staresc-plugins')
+DEFAULT_DIR = os.path.join(os.getenv("HOME", "~/"), '.local/', 'staresc-plugins')
 
 def parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog='staresc', description=description, epilog=' ', formatter_class=argparse.RawTextHelpFormatter )    
     parser.add_argument('-d',  '--debug',    action='store_true', default=False, help='increase output verbosity to debug mode')
     parser.add_argument('-nb', '--nobanner', action='store_true', default=False, help='hide banner')
+    parser.add_argument('-t', '--timeout', action='store', default=float(2), help='set timeout for connections')
 
     maingroup = parser.add_mutually_exclusive_group(required=True)
     maingroup.add_argument('-f',  '--file',       metavar='F', action='store', default='', help='input file containing 1 connection string per line' )
