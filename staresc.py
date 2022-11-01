@@ -68,7 +68,7 @@ def main() -> int:
             exec=args.exec,
             show=args.show,
             no_tmp=args.no_tmp,
-            no_tty=args.no_tty,
+            no_tty=args.notty,
             timeout=args.timeout,
         ).run(targets)
 
