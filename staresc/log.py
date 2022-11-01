@@ -15,7 +15,7 @@ SEVERITY2COLOR = {
     "info"     : "\033[0;32m", # green
 }
 
-class StarescLogger:
+class Logger:
 
     LEVEL_TO_STRING = {
         VULN      : "VULN",
@@ -24,15 +24,15 @@ class StarescLogger:
     }
 
     logger: logging.Logger
-    progress_msg:str = "[STARESC]:[{}]:[RAW]: {}"
+    progress_msg:str = "[RAW]:[{}]: {}"
 
-    class StarescLoggingFormatter(logging.Formatter):
+    class LoggingFormatter(logging.Formatter):
 
         FORMATS = {
-            DEFAULT : '[STARESC]:[%(asctime)s]:[%(levelname)s]: %(message)s',
-            VULN    : '[STARESC]:[%(target)s]:[%(c)s%(severity)s%(r)s]:[%(c)s%(plugin)s%(r)s]',
-            RAW     : '[STARESC]:[%(target)s]:[RAW]: %(message)s',
-            CHECK   : '[STARESC]:[%(asctime)s]:[CHECK]: %(target)s: %(message)s'
+            DEFAULT : '[%(asctime)s]:[%(levelname)s]: %(message)s',
+            VULN    : '[SCAN]:[%(target)s]:[%(c)s%(severity)s%(r)s]:[%(c)s%(plugin)s%(r)s]',
+            RAW     : '[RAW]:[%(target)s]: %(message)s',
+            CHECK   : '[CHECK]:[%(asctime)s]: %(target)s: %(message)s'
         }
 
         def format(self, record):  
@@ -80,7 +80,7 @@ class StarescLogger:
             return
             
         hdlr = logging.StreamHandler()
-        hdlr.setFormatter(self.StarescLoggingFormatter())
+        hdlr.setFormatter(self.LoggingFormatter())
         self.logger.addHandler(hdlr)
 
 
@@ -108,8 +108,11 @@ class StarescLogger:
         if not o.is_vuln_found():
             return
 
-        host = o.target.get_hostname(o.target.connection)
-        port = o.target.get_port(o.target.connection)
+        if o.plugin is None:
+            return
+
+        host = o.target.hostname
+        port = o.target.port
 
         e = {
             "target"   : f"{host}:{port}",
@@ -119,18 +122,18 @@ class StarescLogger:
             "r"        : "\033[0m",
         }
 
-        self.logger.vuln("", extra=e)
+        self.logger.vuln("", extra=e) #type: ignore
 
 
     def raw(self, target:str, port:str, msg:str):
         e = {
             "target": f"{target}:{port}",
         }     
-        self.logger.raw(msg, extra=e)
+        self.logger.raw(msg, extra=e) #type: ignore
 
     
     def check(self, target:str, msg:str):
         e = {
             "target": target,
         }     
-        self.logger.check(msg, extra=e)
+        self.logger.check(msg, extra=e) #type: ignore

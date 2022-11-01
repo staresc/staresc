@@ -1,12 +1,12 @@
-import re
 from functools import lru_cache
 
+from staresc.exceptions import CommandError, ConnectionStringError
 from staresc.connection import Connection, SCHEME_TO_CONNECTION
 from staresc.plugin_parser import Plugin
 from staresc.output import Output
-from staresc.exceptions import StarescCommandError, StarescConnectionStringError
 
-class Staresc():
+
+class ScanWorker():
     """Main component
     
     This is the main component, it is responsible for running scans on a single 
@@ -30,16 +30,16 @@ class Staresc():
         # Check if connection schema is valid
         if not Connection.is_connection_string(connection_string):
             msg = f"invalid connection string: {connection_string}"
-            raise StarescConnectionStringError(msg)
+            raise ConnectionStringError(msg)
 
-        scheme = Connection.get_scheme(connection_string)
+        scheme = Connection.parse(connection_string)['scheme']
         
         try:
             self.connection = SCHEME_TO_CONNECTION[scheme](connection_string)
 
         except KeyError:
             msg = f"scheme is not valid: allowed schemes are {SCHEME_TO_CONNECTION.keys()}"
-            raise StarescConnectionStringError(msg)            
+            raise ConnectionStringError(msg)            
 
     def prepare(self, timeout:float = Connection.command_timeout) -> None:
         """Prepare the execution 
@@ -91,11 +91,7 @@ class Staresc():
         cmd  = f"{self.__which(bin)} {args}" 
         return cmd
 
-    def do_check(self, plugin: Plugin) -> Output:
-        """Performs the actual chercks"""
-        if not re.findall(plugin.get_distribution_matcher(), self.osinfo):      #check distro matcher
-            return None
-
+    def do_check(self, plugin: Plugin) -> Output|None:
         plugin_output = Output(target=self.connection, plugin=plugin)
         # Run all commands and return the output
 
@@ -124,6 +120,6 @@ class Staresc():
                     plugin_output.set_vuln_found(False)
                     break
 
-            except StarescCommandError as e:
+            except CommandError as e:
                 plugin_output.add_timeout_result(stdin=cmd)
         return plugin_output

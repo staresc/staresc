@@ -3,7 +3,7 @@ from typing import Tuple
 
 import paramiko
 
-from staresc.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
+from staresc.exceptions import AuthenticationError, CommandError, ConnectionError
 from staresc.connection import Connection
 
 class SSHSSConnection(Connection):
@@ -63,13 +63,13 @@ class SSHSSConnection(Connection):
             StarescConnectionError -- raised when the program can't connect to the target 
         """
         paramiko_args = {
-            'hostname'      : self.get_hostname(self.connection),
-            'port'          : self.get_port(self.connection),
+            'hostname'      : self.hostname,
+            'port'          : self.port,
             'allow_agent'   : False,
             'look_for_keys' : False,
             'timeout'       : timeout,
         }
-        paramiko_args['username'], paramiko_args['password'] = self.get_credentials(self.connection)
+        paramiko_args['username'], paramiko_args['password'] = self.credentials
         if '/' in paramiko_args['password']:
             paramiko_args['pkey']     = paramiko.RSAKey.from_private_key_file(paramiko_args['password'])
             paramiko_args['password'] = None
@@ -83,11 +83,11 @@ class SSHSSConnection(Connection):
 
         except paramiko.AuthenticationException:
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
-            raise StarescAuthenticationError(msg)
+            raise AuthenticationError(msg)
 
-        except (paramiko.SSHException, paramiko.ssh_exception.NoValidConnectionsError, TimeoutError):
+        except (paramiko.SSHException, paramiko.ChannelException, paramiko.ssh_exception.NoValidConnectionsError, TimeoutError):  # type: ignore
             msg = f"An error occured when trying to connect"
-            raise StarescConnectionError(msg)
+            raise ConnectionError(msg)
             
 
     def run(self, cmd: str, timeout: float = Connection.command_timeout) -> Tuple[str, str, str]:
@@ -111,8 +111,8 @@ class SSHSSConnection(Connection):
         self.stdin.write(canary_cmd + '\n')
         self.stdin.flush()
 
+        tmpout = []
         try:
-            tmpout = []
             for line in self.stdout:
                 # get rid of 'coloring and formatting' special characters
                 line = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]').sub('', line).replace('\b', '').replace('\r', '')
@@ -128,12 +128,13 @@ class SSHSSConnection(Connection):
 
             if tmpout and canary_cmd in tmpout[-1]:
                 tmpout.pop()
+                
             if tmpout and cmd in tmpout[0]:
                 tmpout.pop(0)
 
         except socket.timeout as e:
             msg = f"Command {cmd} timed out"
-            raise StarescCommandError(msg)
+            raise CommandError(msg)
 
         except IndexError:
             return (

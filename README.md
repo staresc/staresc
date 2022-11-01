@@ -3,14 +3,17 @@
 
 <p align="center">
 
-<a href="https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml" alt="Standalone Executable">
-<img src="https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml/badge.svg"></a>
+<a href="https://github.com/5amu/staresc-ng/actions/workflows/release.yml" alt="release">
+<img src="https://github.com/5amu/staresc-ng/actions/workflows/release.yml/badge.svg"></a>
 
-<a href="https://github.com/staresc/staresc/actions/workflows/make-documentation.yml" alt="Make Documentation">
-<img src="https://github.com/staresc/staresc/actions/workflows/make-documentation.yml/badge.svg"></a>
+<a href="https://github.com/staresc/staresc/actions/workflows/documentation.yml" alt="documentation">
+<img src="https://github.com/staresc/staresc/actions/workflows/documentation.yml/badge.svg"></a>
 
-<a href="https://github.com/staresc/staresc/actions/workflows/tests.yml" alt="Unit Tests">
+<a href="https://github.com/staresc/staresc/actions/workflows/tests.yml" alt="tests">
 <img src="https://github.com/staresc/staresc/actions/workflows/tests.yml/badge.svg"></a>
+
+<a href="https://github.com/staresc/staresc/actions/workflows/requirements.yml" alt="tests">
+<img src="https://github.com/staresc/staresc/actions/workflows/requirements.yml/badge.svg"></a>
 
 </p>
 

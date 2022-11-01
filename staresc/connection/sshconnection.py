@@ -3,7 +3,7 @@ from typing import Tuple
 
 import paramiko
 
-from staresc.exceptions import StarescAuthenticationError, StarescCommandError, StarescConnectionError
+from staresc.exceptions import AuthenticationError, CommandError, ConnectionError
 from staresc.connection import Connection
 
 logger = logging.getLogger(__name__)
@@ -55,28 +55,32 @@ class SSHConnection(Connection):
         """
 
         paramiko_args = {
-            'hostname'      : self.get_hostname(self.connection),
-            'port'          : self.get_port(self.connection),
+            'hostname'      : self.hostname,
+            'port'          : self.port,
             'allow_agent'   : False,
             'look_for_keys' : False,
             'timeout'       : timeout,
         }
-        paramiko_args['username'], paramiko_args['password'] = self.get_credentials(self.connection)
+        paramiko_args['username'], paramiko_args['password'] = self.credentials
         if '/' in paramiko_args['password']:
             paramiko_args['pkey']     = paramiko.RSAKey.from_private_key_file(paramiko_args['password'])
             paramiko_args['password'] = None
 
         try:
             self.client.connect(**paramiko_args)
-            self.client.get_transport().set_keepalive(5)
+            transport = self.client.get_transport()
+            if transport:
+                transport.set_keepalive(5)
+            else:
+                logger.debug(f"couldn't get transport for {self.hostname}")
 
         except paramiko.AuthenticationException:
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
-            raise StarescAuthenticationError(msg)
+            raise AuthenticationError(msg)
 
-        except (paramiko.SSHException, paramiko.ssh_exception.NoValidConnectionsError, TimeoutError):
+        except (paramiko.SSHException, paramiko.ChannelException, paramiko.ssh_exception.NoValidConnectionsError, TimeoutError):  # type: ignore
             msg = f"An error occured when trying to connect"
-            raise StarescConnectionError(msg)
+            raise ConnectionError(msg)
             
 
     def run(self, cmd: str, timeout: float = Connection.command_timeout, bufsize: int = 4096, get_pty=False) -> Tuple[str, str, str]:
@@ -91,7 +95,14 @@ class SSHConnection(Connection):
             StarescCommandError -- The provided command timed out
         """
         try:
-            chan = self.client.get_transport().open_session()
+            transport = self.client.get_transport()
+            if transport:
+                chan = transport.open_session()
+                
+            else:
+                msg = f"couldn't open session"
+                raise ConnectionError(msg)
+
             chan.settimeout(timeout)
 
             # Sudo usually requires a pty, but not sure if we will run commands with it, so for now it will be disabled
@@ -103,11 +114,14 @@ class SSHConnection(Connection):
 
         except paramiko.SSHException:
             msg = f"Couldn't open session when trying to run command: {cmd}"
-            raise StarescConnectionError(msg)
+            raise ConnectionError(msg)
 
         except TimeoutError:
             msg = f"command {cmd} timed out"
-            raise StarescCommandError(msg)
+            raise CommandError(msg)
+
+        except ConnectionError as e:
+            raise e
          
         return (
             # stdin
