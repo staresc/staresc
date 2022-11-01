@@ -28,7 +28,7 @@ jobs:
         python -m pip install -r requirements.txt
     - name: Build documentation
       run: |
-        pdoc -o documentation -d google --logo-link "https://static.thenounproject.com/png/400559-200.png" staresc
+        pdoc -o documentation -d google --logo ./assets/logo.png staresc
     - name: Pushes to another repository
       uses: cpina/github-action-push-to-another-repository@main
       env:
