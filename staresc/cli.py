@@ -14,6 +14,8 @@ The connection string format is the following: schema://user:auth@host:port
 auth can be either a password or a path to ssh privkey, specified as \\\\path\\\\to\\\\privkey
 """
 
+DEFAULT_DIR = os.path.join(os.getenv("HOME","~/"), '.local/', 'staresc-plugins')
+
 def parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog='staresc', description=description, epilog=' ', formatter_class=argparse.RawTextHelpFormatter )    
     parser.add_argument('-d',  '--debug',    action='store_true', default=False, help='increase output verbosity to debug mode')
@@ -28,7 +30,7 @@ def parse() -> argparse.Namespace:
     mode_subparser = parser.add_subparsers(dest='mode', help='Staresc execution mode')
 
     scanmode = mode_subparser.add_parser(name='scan', help='Scan mode: execute plugins on target')
-    scanmode.add_argument('-p', '--plugins', metavar='dir', action='store', default='', help='path to plugins directory')
+    scanmode.add_argument('-p', '--plugins', metavar='dir', action='store', default=DEFAULT_DIR, help='path to plugins directory')
 
     rawmode = mode_subparser.add_parser(name='raw', help='Raw mode: execute custom commands', formatter_class=argparse.RawTextHelpFormatter)
     rawmode.add_argument('--command', metavar='command',  action='append', default=[], help='command to run on the targers')
@@ -104,8 +106,7 @@ def handle_output(fname:str, formats:list[str]) -> None:
 def parse_plugins(plugins_dir: str = "") -> list[Plugin]:
     """Static method to parse plugins"""
     if plugins_dir == "":
-        tmp = os.path.dirname(os.path.realpath(__file__))
-        plugins_dir = os.path.join(tmp, "plugins/")
+        return []
     elif not plugins_dir.startswith('/'):
         plugins_dir = os.path.join(os.getcwd(), plugins_dir)
 
