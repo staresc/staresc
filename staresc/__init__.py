@@ -1,7 +1,7 @@
 #!/usr/bin/python
+import os
 
-
-VERSION = "v2.3"
+VERSION = "v2.4"
 
 
 BANNER = """ _______ _________ _______  _______  _______  _______  _______ 
@@ -14,3 +14,7 @@ BANNER = """ _______ _________ _______  _______  _______  _______  _______
 \\_______)   )_(   |/     \\||/   \\__/(_______/\\_______)(_______/
                                              - by 5amu & cekout
 """
+
+DEFAULT_PLUGIN_DIR = os.path.join(os.getenv("HOME", "~/"), '.local/', 'staresc-plugins')
+if not os.path.exists(DEFAULT_PLUGIN_DIR):
+      DEFAULT_PLUGIN_DIR = ""
