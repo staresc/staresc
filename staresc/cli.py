@@ -7,14 +7,13 @@ from staresc.exporter import Exporter, CSVHandler, XLSXHandler, JSONHandler, Han
 from staresc.exceptions import ParseError
 from staresc.log import Logger
 from staresc.plugin_parser.plugin import Plugin
+from staresc import DEFAULT_PLUGIN_DIR
 
 description  = """
 Make SSH/TELNET PTs great again!
 The connection string format is the following: schema://user:auth@host:port
 auth can be either a password or a path to ssh privkey, specified as \\\\path\\\\to\\\\privkey
 """
-
-DEFAULT_DIR = os.path.join(os.getenv("HOME", "~/"), '.local/', 'staresc-plugins')
 
 def parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog='staresc', description=description, epilog=' ', formatter_class=argparse.RawTextHelpFormatter )    
@@ -31,7 +30,7 @@ def parse() -> argparse.Namespace:
     mode_subparser = parser.add_subparsers(dest='mode', help='Staresc execution mode')
 
     scanmode = mode_subparser.add_parser(name='scan', help='Scan mode: execute plugins on target')
-    scanmode.add_argument('-p', '--plugins', metavar='dir', action='store', default=DEFAULT_DIR, help='path to plugins directory')
+    scanmode.add_argument('-p', '--plugins', metavar='dir', action='store', default=DEFAULT_PLUGIN_DIR, help='path to plugins directory')
 
     rawmode = mode_subparser.add_parser(name='raw', help='Raw mode: execute custom commands', formatter_class=argparse.RawTextHelpFormatter)
     rawmode.add_argument('--command', metavar='command',  action='append', default=[], help='command to run on the targers')
@@ -46,9 +45,9 @@ def parse() -> argparse.Namespace:
     checkmode = mode_subparser.add_parser(name='check', help='Check mode: check reachability')
     checkmode.add_argument('--ping', default=False, action='store_true', help='ping hosts if they do not respond at ssh port')
 
-    outputs = parser.add_mutually_exclusive_group(required=False)
+    outputs = parser.add_argument_group()
     outputs.add_argument('-o',  '--output', metavar='pattern', action='store', default='', help='export results in specified format')
-    outputs.add_argument('-of', '--output-format', metavar='FMT', action='append', default=['csv'], help='format of results')    
+    outputs.add_argument('-of', '--output-format', metavar='FMT', action='append', default=[], help='format of results')    
     return parser.parse_args()
 
 
@@ -91,7 +90,10 @@ def __parsepath(p:str) -> str:
 
 def handle_output(fname:str, formats:list[str]) -> None:
     if fname == "":
-        return    
+        return
+
+    if len(formats) == 0:
+        formats.append('csv')
 
     full_path = __parsepath(fname)
     for fmt in formats:

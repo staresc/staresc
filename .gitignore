@@ -14,3 +14,5 @@ targets.txt
 staresc_*
 *egg-info
 build
+*.csv
+*.xlsx

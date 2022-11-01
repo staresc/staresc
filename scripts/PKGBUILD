@@ -1,7 +1,7 @@
 # Maintainer: 5amu <v.casalino@protonmail.com>
 pkgname=staresc
 pkgver=2
-pkgrel=0
+pkgrel=4
 _version="${pkgver}.${pkgrel}"
 pkgdesc="Make SSH/TNT PTs Great Again!"
 arch=( 'x86_64' )
@@ -13,5 +13,5 @@ sha256sums=('SKIP')
 
 package() {
 	cd "$srcdir/$pkgname-$_version"
-	python setup.py install --no-deps --root="$pkgdir" --optimize=1
+	python -m pip install --no-deps --root="$pkgdir" .
 }
