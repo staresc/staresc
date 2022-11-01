@@ -1,6 +1,9 @@
 import re
+from telnetlib import Telnet
 from typing import Tuple
 from functools import cached_property
+
+from paramiko import SSHClient
 
 class Connection():
     """Connection is the class handling connections
@@ -26,16 +29,16 @@ class Connection():
 
     # static fields
     __parse_regex = re.compile(
-        "^([a-z]+)://" +    # scheme
-        "([^:]+)" +         # username
-        ":(.*)@" +          # password
-        "(" +               # host parse start
-        "((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?){4}" + # IP
-        "|" +               # or
-        "([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*\.)+[a-zA-Z]{2,}" + # Hostname
-        ")" +               # host parse end
-        ":([0-9]{1,5})" +   # port
-        "/?$"               # optional trailing slash
+        r"^([a-z]+)://" +    # scheme
+        r"([^:]+)" +         # username
+        r":(.*)@" +          # password
+        r"(" +               # host parse start
+        r"((25[0-5]|(2[0-4]|1[0-9]|[1-9]|)[0-9])\.?){4}" + # IP
+        r"|" +               # or
+        r"([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*\.)+[a-zA-Z]{2,}" + # Hostname
+        r")" +               # host parse end
+        r":([0-9]{1,5})" +   # port
+        r"/?$"               # optional trailing slash
         )
 
     command_timeout: float = 60
@@ -45,6 +48,9 @@ class Connection():
     will not. Changing this value might generate false negatives in the result    
     """
 
+    client:Telnet|SSHClient
+
+
     def __init__(self, connection: str) -> None:
         """Class constructor
 
@@ -53,27 +59,36 @@ class Connection():
         """
         self.connection = connection
 
+
     @cached_property
     def scheme(self) -> str:
-        return Connection.get_scheme(self.connection)
+        return Connection.parse(self.connection)['scheme']
+
 
     @cached_property
     def hostname(self) -> str:
-        return Connection.get_hostname(self.connection)
+        return Connection.parse(self.connection)['hostname']
+
 
     @cached_property
     def port(self) -> int:
-        return Connection.get_port(self.connection)
+        return int(Connection.parse(self.connection)['port'])
+
 
     @cached_property
     def credentials(self)-> Tuple[str, str]:
-        return Connection.get_credentials(self.connection)
+        """Get user credentials from connection string"""
+        p = Connection.parse(self.connection)
+        if "\\" in p['password']:
+            return p['username'], p['password'].replace("\\", "/")
+        return p['username'], p['password']
+
 
     @staticmethod
     def parse(connection: str) -> dict[str, str]:
         match = Connection.__parse_regex.search(connection)
         if not match:
-            return None
+            return {}
         return {
             'scheme':   match.group(1),
             'hostname': match.group(4),
@@ -82,30 +97,6 @@ class Connection():
             'password': match.group(3)
         }
 
-    @staticmethod
-    def get_scheme(connection: str) -> str:
-        """Get scheme from connection string"""
-        return Connection.parse(connection)['scheme']
-
-    @staticmethod
-    def get_hostname(connection: str) -> str:
-        """Get hostname from connection string"""
-        return Connection.parse(connection)['hostname']
-
-    @staticmethod
-    def get_port(connection: str) -> int:
-        """Get port from connection string"""
-        return int(Connection.parse(connection)['port'])
-
-    @staticmethod
-    def get_credentials(connection: str) -> Tuple[str, str]:
-        """Get user credentials from connection string"""
-        p = Connection.parse(connection)
-
-        if "\\" in p['password']:
-            return p['username'], p['password'].replace("\\", "/")
-
-        return p['username'], p['password']
 
     @staticmethod
     def is_connection_string(connection: str) -> bool:
@@ -115,13 +106,16 @@ class Connection():
             return False
         return bool(tmp['hostname'] and tmp['username'] and tmp['password']) 
 
+
     def close(self) -> None:
         """Close the connection"""
         self.client.close()
 
-    def connect(self, ispubkey: bool) -> None:
+
+    def connect(self, timeout:float) -> None:
         """Interface to make the connection connect to the target"""
         pass
+
 
     def run(self, cmd: str) -> Tuple[str, str, str]:
         """Interface to run a command on the target machine 
@@ -129,5 +123,5 @@ class Connection():
         it uses the underlying connection and enforces the return values in the
         form of a tuple composed by stdin, stdout and stderr
         """
-        pass
+        return '','',''
 

@@ -1,5 +1,5 @@
 from typing import Tuple
-from staresc.exceptions import StarescPluginError
+from staresc.exceptions import PluginError
 
 from staresc.plugin_parser import Parser, Matcher, Extractor
 
@@ -34,11 +34,11 @@ class Test:
 
         except KeyError:
             msg = "invalid syntax command/parsers"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
 
         if (not isinstance(parsers, list)) or (len(parsers) < 1):
             msg = "no parser specified or invalid syntax"
-            raise StarescPluginError(msg)
+            raise PluginError(msg)
         
         MAP_PARSER = {
             "matcher"   : Matcher,
@@ -51,14 +51,14 @@ class Test:
 
             except KeyError:
                 msg = "invalid parser_type value"
-                raise StarescPluginError(msg)
+                raise PluginError(msg)
 
 
     def get_command(self) -> str:
         """Get the Command"""
         return self.command
 
-    def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:          #TODO implement support for matchers and mixed (pipe of matcher and extractors) parsing, problem: matchers return boolean, not dict[str, str]
+    def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         """Run the parsers on the result of the Command
         The parsers are run following a pipeline-like structure:
         the output of the parser N°1 is passed as input to the parser N°2,
@@ -72,7 +72,7 @@ class Test:
         Attributes:
            result -- dict containing the result of the command executed on the target machine, it has the following format: {"stdout": command_stdout, "stderr": command_stderr}"""
         piped_result: dict[str, str] = result
-        piped_boolean_result: bool = True                           #TODO handle not only and condition in piped matchers
+        piped_boolean_result: bool = True
 
         for parser in self.parsers:
             tmp_bool, piped_result = parser.parse(piped_result)

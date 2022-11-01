@@ -4,12 +4,19 @@
 </br>
 
 <p align="center">
-<a href="https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml" alt="executables">
-<img src="https://github.com/5amu/staresc-ng/actions/workflows/release-with-tag.yml/badge.svg"></a>
-<a href="https://github.com/staresc/staresc/actions/workflows/make-documentation.yml" alt="documentation">
-<img src="https://github.com/staresc/staresc/actions/workflows/make-documentation.yml/badge.svg"></a>
+
+<a href="https://github.com/5amu/staresc-ng/actions/workflows/release.yml" alt="release">
+<img src="https://github.com/5amu/staresc-ng/actions/workflows/release.yml/badge.svg"></a>
+
+<a href="https://github.com/staresc/staresc/actions/workflows/documentation.yml" alt="documentation">
+<img src="https://github.com/staresc/staresc/actions/workflows/documentation.yml/badge.svg"></a>
+
 <a href="https://github.com/staresc/staresc/actions/workflows/tests.yml" alt="tests">
 <img src="https://github.com/staresc/staresc/actions/workflows/tests.yml/badge.svg"></a>
+
+<a href="https://github.com/staresc/staresc/actions/workflows/requirements.yml" alt="tests">
+<img src="https://github.com/staresc/staresc/actions/workflows/requirements.yml/badge.svg"></a>
+
 </p>
 
 
@@ -19,31 +26,33 @@ Initially developed as an internal tool for [@5amu](https://github.com/5amu)'s d
 ## Usage
 
 ```
-usage: staresc [-h] [-d] [-c C] [-ocsv filename] [-oxlsx filename] [-ojson filename] [-oall pattern] (-t | -v | -f F | connection)
+usage: staresc [-h] [-d] [-nb] [-t TIMEOUT] (-f F | -cs CS | --test | -v) [-o pattern | -of FMT] {scan,raw,check} ...
 
 Make SSH/TELNET PTs great again!
+The connection string format is the following: schema://user:auth@host:port
+auth can be either a password or a path to ssh privkey, specified as \\path\\to\\privkey
 
 positional arguments:
-  connection            schema://user:auth@host:port
-                        auth can be either a password or a path to ssh
-                        privkey, specified as \\path\\to\\privkey
+  {scan,raw,check}      Staresc execution mode
+    scan                Scan mode: execute plugins on target
+    raw                 Raw mode: execute custom commands
+    check               Check mode: check reachability
 
 options:
   -h, --help            show this help message and exit
   -d, --debug           increase output verbosity to debug mode
-  -c C, --config C      path to plugins directory
-  -oall pattern, --output-all pattern
-                        export results in all possible formats
-  -t, --test            test staresc integrity
+  -nb, --nobanner       hide banner
+  -t TIMEOUT, --timeout TIMEOUT
+                        set timeout for connections
+  -f F, --file F        input file containing 1 connection string per line
+  -cs CS, --connection CS
+                        connection string
+  --test                test staresc integrity
   -v, --version         print version and exit
-  -f F, --file F        input file: 1 connection string per line
-
-  -ocsv filename, --output-csv filename
-                        export results on a csv file
-  -oxlsx filename, --output-xlsx filename
-                        export results on a xlsx (MS Excel) file
-  -ojson filename, --output-json filename
-                        export results on a json file
+  -o pattern, --output pattern
+                        export results in specified format
+  -of FMT, --output-format FMT
+                        format of results
 ```
 
 ## Install
@@ -52,7 +61,7 @@ options:
 
 ```bash
 git clone https://github.com/staresc/staresc && cd staresc
-sudo make install
+pip install .
 ```
 
 ### Compiled version

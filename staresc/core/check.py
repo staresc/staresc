@@ -3,31 +3,24 @@ import platform
 import os
 
 
-from staresc.log import StarescLogger
-from staresc.exceptions import StarescAuthenticationError, StarescConnectionError, StarescConnectionStringError
-from staresc.core import Staresc
-
+from staresc.connection.sshconnection import SSHConnection
+from staresc.log import Logger
+from staresc.exceptions import AuthenticationError, ConnectionError, ConnectionStringError
 
 class Checker:
+    logger:Logger
+    timeout:float
 
-    def __init__(self, logger: StarescLogger) -> None:
-        self.logger = logger
+    def __init__(self, timeout:float = 2.0) -> None:
+        self.logger  = Logger()
+        self.timeout = timeout
 
 
     def check(self, connection_string: str):
         try:
-            s = Staresc(connection_string)
-            s.prepare(timeout=1)
+            s = SSHConnection(connection_string)
 
-        except StarescAuthenticationError:
-            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Wrong credentials")
-            return
-
-        except StarescConnectionError:
-            self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}",msg="Not reachable")
-            return
-
-        except StarescConnectionStringError:
+        except ConnectionStringError:
             try:
                 self.logger.debug(f"{connection_string} is a malformed connection string, is it a single host?")
                 parameter = "-n" if platform.system().lower() == "windows" else "-c"
@@ -40,8 +33,20 @@ class Checker:
         
             except Exception as e:
                 print(type(e), e)
+                return
+        
+        try:
+            s.connect(timeout=self.timeout)
 
-        self.logger.check(target=f"{s.connection.hostname}:{s.connection.port}", msg="OK")
+        except AuthenticationError:
+            self.logger.check(target=f"{s.hostname}:{s.port}",msg="Wrong credentials")
+            return
+
+        except ConnectionError:
+            self.logger.check(target=f"{s.hostname}:{s.port}",msg="Not reachable")
+            return
+
+        self.logger.check(target=f"{s.hostname}:{s.port}", msg="OK")
 
 
     def run(self, targets: list[str]):
@@ -54,6 +59,7 @@ class Checker:
             for future in concurrent.futures.as_completed(futures):
                 target = targets[futures.index(future)]
                 self.logger.debug(f"Finished scan on target {target}")
+        return 0
     
 
     

@@ -1,0 +1,35 @@
+name: requirements
+
+on:
+  push:
+    branches: [ 'main' ]
+  workflow_dispatch:
+
+jobs:
+  update_requirements:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+
+      - name: Install pipreqs
+        run: python3 -m pip install pipreqs
+
+      - name: Update requirements
+        run: pipreqs --mode gt --savepath=- | grep -v 'setuptools' > requirements.txt
+
+      - name: Commit Changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -m "requirements.txt auto-update" -a || true
+      - name: Push Changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}

@@ -60,6 +60,7 @@ class Matcher(Parser):
                 return (False, result)
         return (is_matched, result)
 
+
     def parse(self, result: dict[str, str]) -> Tuple[bool, dict[str, str]]:
         """Method used to parse the result of a command and to check if the vuln is found.
         In this class, this method checks if the matching rules are satisfied.
@@ -74,6 +75,7 @@ class Matcher(Parser):
             "word"  : self.__match_word
         }
         is_matched, tmp_res = MATCHER_TO_FUNC[self.rule_type](self.parts, result)
-        is_matched ^= self.invert_match         # is_matched = invert_match ? !is_matched : is_matched
+        # is_matched = invert_match ? !is_matched : is_matched
+        is_matched ^= self.invert_match
         return (is_matched, tmp_res)
 

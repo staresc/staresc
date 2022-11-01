@@ -5,6 +5,8 @@ It containes the runner and the main classes: StarescRunner() and Staresc().
 """
 
 
-from .staresc import Staresc
-from .runner import StarescRunner
+from .scan import Scanner
+from .check import Checker
+from .raw import Raw
+from .test import Tester
 
