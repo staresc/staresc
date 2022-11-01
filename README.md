@@ -64,7 +64,7 @@ pip install .
 ### Compiled version
 
 Download the latest version of the pyinstaller's compiled binary:
-[https://github.com/staresc/staresc/releases/download/latest/staresc](https://github.com/staresc/staresc/releases/download/latest/staresc)
+[https://github.com/staresc/staresc/releases/latest/](https://github.com/staresc/staresc/releases/latest/)
 
 ### Archlinux BTW
 
