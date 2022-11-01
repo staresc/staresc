@@ -78,7 +78,7 @@ class SSHConnection(Connection):
             msg = f"Authentication failed for {paramiko_args['username']} with password {paramiko_args['password']}"
             raise AuthenticationError(msg)
 
-        except (paramiko.SSHException, paramiko.ChannelException, TimeoutError):
+        except (paramiko.SSHException, paramiko.ChannelException, paramiko.ssh_exception.NoValidConnectionsError, TimeoutError):  # type: ignore
             msg = f"An error occured when trying to connect"
             raise ConnectionError(msg)
             

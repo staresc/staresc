@@ -38,6 +38,12 @@ def main() -> int:
     else:
         logger.setLevelInfo()
 
+    # not a subcommand, but test staresc integrity by spawning an SSH server
+    # and launching pre-determined commands against it to test how staresc
+    # would deal with it.
+    if args.test: 
+        return Tester().test()
+
     try:     
         # get targets if any, it is useful in every mode
         targets = cli.get_targets(args.file, args.connection)
@@ -78,12 +84,6 @@ def main() -> int:
     # sharing and readability.
     elif args.mode == 'check':
         exit_code = Checker(timeout=args.timeout).run(targets=targets)
-    
-    # not a subcommand, but test staresc integrity by spawning an SSH server
-    # and launching pre-determined commands against it to test how staresc
-    # would deal with it.
-    elif args.test: 
-        return Tester().test()
 
     # unreachable code, written to warn if a dafuq moment happens. Worry only
     # if that error is ever printed, but should never be.
