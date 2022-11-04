@@ -54,20 +54,19 @@ options:
 
 ## Install
 
-### From Git Source
+### Using pip
 
 ```bash
-git clone https://github.com/staresc/staresc && cd staresc
-pip install .
+pip install git+https://github.com/staresc/staresc.git
+```
+
+### From the AUR
+
+```bash
+paru -S staresc
 ```
 
 ### Compiled version
 
 Download the latest version of the pyinstaller's compiled binary:
 [https://github.com/staresc/staresc/releases/latest/](https://github.com/staresc/staresc/releases/latest/)
-
-### Archlinux BTW
-
-```bash
-paru -S staresc
-```
