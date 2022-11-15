@@ -12,16 +12,16 @@ class Output():
     vuln_found: bool
     message: str
 
-    def __init__(self, target: Connection, plugin: Plugin|None, test_results: list = [], test_results_parsed: list = [], test_success: list[bool] = [], test_timeout: list[bool] = [], parsed = False, vuln_found: bool = False, message:str = ""):
-        self.target = target
-        self.plugin = plugin
-        self.test_results = test_results
-        self.test_results_parsed = test_results_parsed
-        self.test_success = test_success
-        self.test_timeout = test_timeout
-        self.parsed = parsed
-        self.vuln_found = vuln_found
-        self.message = message
+    def __init__(self, target: Connection, plugin: Plugin|None, parsed = False, vuln_found: bool = False, message:str = ""):
+        self.target              = target
+        self.plugin              = plugin
+        self.test_results        = []
+        self.test_results_parsed = []
+        self.test_success        = []
+        self.test_timeout        = []
+        self.parsed              = parsed
+        self.vuln_found          = vuln_found
+        self.message             = message
 
 
     def add_test_result(self, stdin: str, stdout :str, stderr: str) -> None:
