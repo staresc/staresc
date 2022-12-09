@@ -19,7 +19,7 @@ def parse() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog='staresc', description=description, epilog=' ', formatter_class=argparse.RawTextHelpFormatter )    
     parser.add_argument('-d',  '--debug',    action='store_true', default=False, help='increase output verbosity to debug mode')
     parser.add_argument('-nb', '--nobanner', action='store_true', default=False, help='hide banner')
-    parser.add_argument('-t', '--timeout', action='store', default=float(2), help='set timeout for connections')
+    parser.add_argument('-t', '--timeout', action='store', default=None, help='set timeout for connections')
 
     maingroup = parser.add_mutually_exclusive_group(required=True)
     maingroup.add_argument('-f',  '--file',       metavar='F', action='store', default='', help='input file containing 1 connection string per line' )
@@ -48,8 +48,16 @@ def parse() -> argparse.Namespace:
     outputs = parser.add_argument_group()
     outputs.add_argument('-o',  '--output', metavar='pattern', action='store', default='', help='export results in specified format')
     outputs.add_argument('-of', '--output-format', metavar='FMT', action='append', default=[], help='format of results')    
-    return parser.parse_args()
-
+    args = parser.parse_args()
+    
+    # Default timeout values
+    if args.timeout:
+        args.timeout = float(args.timeout)
+    elif args.mode == 'raw':
+        args.timeout = float(0)
+    else:
+        args.timeout = float(2)
+    return args
 
 def get_targets(fname:str, single_target:str ) -> list[str]:
     """get_targets parses file or arg to get a list of targets
