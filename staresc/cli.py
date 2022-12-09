@@ -37,9 +37,9 @@ def parse() -> argparse.Namespace:
     rawmode.add_argument('--push',    metavar='filename', action='append', default=[], help='push files to the target')
     rawmode.add_argument('--pull',    metavar='filename', action='append', default=[], help='pull files from the target')
     rawmode.add_argument('--exec',    metavar='filename', action='store',  default='', help='equivalent to "--push file --command ./file"')
-    rawmode.add_argument('--no-tmp',  default=False, action='store_true', help='skip creating temp folder and cd-ing into it')
     rawmode.add_argument('--show',    default=False, action='store_true', help='show commands output in the terminal')
-    rawmode.add_argument('--notty',   default=False, action='store_true', help='SSH only: don\'t request a TTY')
+    rawmode.add_argument('--no-tmp',  default=False, action='store_true', help='skip creating temp folder and cd-ing into it')
+    rawmode.add_argument('--no-tty',   default=False, action='store_true', help='SSH only: don\'t request a TTY')
     rawmode.add_argument('--no-sftp', default=False, action='store_true', help='disable the SFTP subsystem; implies --no-tmp')
 
     checkmode = mode_subparser.add_parser(name='check', help='Check mode: check reachability')
