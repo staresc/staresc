@@ -20,8 +20,8 @@ class RawHandler(Handler):
             os.makedirs(output_dir, exist_ok=True)
 
             base_filename = f"{output.target.hostname}_{datetime.now().strftime('%m-%d_%H.%M.%S')}"
-            outstream = "\n\n".join(["$ " + r['stdin'] + "\n" + r['stdout'] for r in output.test_results])
-            errstream = "\n\n".join([r['stderr'] for r in output.test_results])
+            outstream = "\n\n".join(["$ " + r['stdin'] + "\n" + r['stdout'] for r in output.test_results]) + "\n"
+            errstream = "\n\n".join([r['stderr'] for r in output.test_results]) + "\n"
 
             with open(os.path.join(output_dir, base_filename + '.out.log'), 'a+') as f:
                 f.write(outstream)
