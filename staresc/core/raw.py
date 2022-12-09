@@ -140,5 +140,4 @@ class Raw:
                 for worker in self.workers:
                     worker.cleanup()
 
-        Exporter.export()
         return 0
