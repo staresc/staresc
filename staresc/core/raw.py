@@ -7,7 +7,7 @@ from threading import Event
 from staresc.log import Logger
 from staresc.exporter import Exporter
 from staresc.core.worker import RawWorker
-from staresc.exceptions import RawModeFileTransferError, CommandError
+from staresc.exceptions import RawModeFileTransferError
 
 
 class Raw:
@@ -23,11 +23,11 @@ class Raw:
     stop_event:Event
     timeout:float
 
-    def __init__(self, timeout:float = 2.0, commands:list[str] = [], push:list[str] = [], pull:list[str] = [], exec:str = '', show:bool = False, no_tty:bool = False, no_tmp:bool = False, no_sftp:bool = False) -> None:
+    def __init__(self, timeout = float(0), commands:list[str] = None, push:list[str] = None, pull:list[str] = None, exec:str = '', show:bool = False, no_tty:bool = False, no_tmp:bool = False, no_sftp:bool = False) -> None:
         self.logger     = Logger()
-        self.commands   = commands
-        self.push       = push
-        self.pull       = pull
+        self.commands   = commands or []
+        self.push       = push or []
+        self.pull       = pull or []
         self.show       = show
         self.get_tty    = not no_tty
         self.no_sftp    = no_sftp
@@ -37,14 +37,13 @@ class Raw:
 
         self.workers: list[RawWorker] = []
 
-        if exec != '':
+        if exec and exec != '':
             self.push.append(exec)
             self.commands.append('./' + os.path.basename(exec))
 
         # If the you want to just push/pull files, disable the temp dir creation
-        self.make_temp = len(self.commands) == 0 and not self.no_tmp
+        self.make_temp = len(self.commands) != 0 and not self.no_tmp
         
-    
     def __is_stop_event_set(self) -> bool:
         if self.stop_event.isSet():
             self.logger.debug("event was set")
@@ -59,7 +58,8 @@ class Raw:
                 connection_string=connection_string, 
                 make_temp=self.make_temp, 
                 no_sftp=self.no_sftp, 
-                get_tty=self.get_tty
+                get_tty=self.get_tty,
+                timeout=self.timeout
                 )
             self.logger.raw(
                 target=worker.connection.hostname,
@@ -68,8 +68,8 @@ class Raw:
             )
 
             if self.__is_stop_event_set(): return
-            worker.prepare(timeout=self.timeout)
-            self.workers.append(worker)
+            worker.prepare()
+            self.workers.append(worker) # Appending elements to lists is thread-safe
 
             try:
                 # Push needed files
@@ -133,11 +133,11 @@ class Raw:
                     self.logger.debug(f"Finished operations on target {target}")
             
             except KeyboardInterrupt:
-                for future in futures:
-                    future.cancel()
-                    self.stop_event.set()
-                    for worker in self.workers:
-                        worker.cleanup()
+                self.stop_event.set()
+                self.logger.info(f"Shutting down threads...")
+                # Synchronize before cleaning-up to prevent race conditions
+                executor.shutdown(wait=True, cancel_futures=True)
+                for worker in self.workers:
+                    worker.cleanup()
 
-        Exporter.export()
         return 0

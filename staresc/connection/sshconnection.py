@@ -54,6 +54,9 @@ class SSHConnection(Connection):
             StarescConnectionError -- raised when the program can't connect to the target 
         """
 
+        if timeout == 0:
+            timeout = None
+
         paramiko_args = {
             'hostname'      : self.hostname,
             'port'          : self.port,
@@ -94,6 +97,10 @@ class SSHConnection(Connection):
             StarescConnectionError -- Failure in connection establishment
             StarescCommandError -- The provided command timed out
         """
+
+        if timeout == 0:
+            timeout = None
+
         try:
             transport = self.client.get_transport()
             if transport:
