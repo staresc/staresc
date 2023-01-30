@@ -35,10 +35,14 @@ class Handler:
 def technical_details(o: Output):
     tech_details = ""
     for i in range(len(o.test_results)):
-        tech_details += f"cmd: {o.test_results[i]['stdin']}\n"
-        tech_details += f"stdout: {o.test_results_parsed[i]['stdout']}\n"
-        tech_details += f"stderr: {o.test_results_parsed[i]['stderr']}\n"
-        tech_details += "\n\n\n"
+        comment = o.test_results[i].get('comment')
+        stdin   = o.test_results[i].get('stdin')
+        stdout  = o.test_results[i].get('stdout')
+        stderr  = o.test_results[i].get('stderr')
+        tech_details += f"{comment}\n"               if comment else ""
+        tech_details += f"### cmd:\n{stdin}\n\n"     if stdin else ""
+        tech_details += f"### stdout:\n{stdout}\n\n" if stdout else ""
+        tech_details += f"### stderr:\n{stderr}\n\n" if stderr else ""
     return tech_details
 
 

@@ -108,10 +108,10 @@ class ScanWorker():
                 positive_test, parsed_result = plugin.get_tests()[idx].parse({
                     "stdout": stdout or '',
                     "stderr": stderr or ''
-                })      # parse test results
+                }) # parse test results
 
                 plugin_output.add_test_success(positive_test)
-                plugin_output.add_test_result_parsed(stdout=parsed_result["stdout"], stderr=parsed_result["stderr"] )
+                plugin_output.add_test_result_parsed(stdout=parsed_result["stdout"], stderr=parsed_result["stderr"], comment=test.comment)
                 plugin_output.set_parsed(True)
                 if positive_test and plugin.match_condition == 'or':
                     plugin_output.set_vuln_found(True)

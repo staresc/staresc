@@ -28,15 +28,16 @@ class Output():
         self.test_results.append({
             "stdin": stdin,
             "stdout": stdout,
-            "stderr": stderr
+            "stderr": stderr,
         })
         self.test_timeout.append(False)
 
 
-    def add_test_result_parsed(self, stdout :str, stderr: str) -> None:
+    def add_test_result_parsed(self, stdout :str, stderr: str, comment:str = "") -> None:
         self.test_results_parsed.append({
             "stdout": stdout,
-            "stderr": stderr
+            "stderr": stderr,
+            "comment" : comment,
         })
 
 

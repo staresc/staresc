@@ -15,6 +15,11 @@ class Test:
 
     string containing the shell command to execute on the target machines
     """
+    comment: str
+    """Comment
+
+    string explaining what the command is doing
+    """
     parsers: list[Parser]
     """Parsers list
 
@@ -31,6 +36,8 @@ class Test:
         try:
             self.command = test_content["command"]
             parsers      = test_content["parsers"]
+            # comment is optional
+            self.comment = test_content.get("comment", "")
 
         except KeyError:
             msg = "invalid syntax command/parsers"
@@ -70,7 +77,9 @@ class Test:
         The first parser receieves as input the result of the Command and a boolean condition set to True.
 
         Attributes:
-           result -- dict containing the result of the command executed on the target machine, it has the following format: {"stdout": command_stdout, "stderr": command_stderr}"""
+           result -- dict containing the result of the command executed on the target machine, 
+                     it has the following format: {"stdout": command_stdout, "stderr": command_stderr, "comment": self.comment}
+        """
         piped_result: dict[str, str] = result
         piped_boolean_result: bool = True
 
