@@ -27,7 +27,7 @@ def parse() -> argparse.Namespace:
     maingroup.add_argument('--test', action='store_true', default=False, help='test staresc integrity')
     maingroup.add_argument('-v',  '--version',  action='store_true', default=False, help='print version and exit')
 
-    mode_subparser = parser.add_subparsers(dest='mode', help='Staresc execution mode')
+    mode_subparser = parser.add_subparsers(dest='mode', help='Staresc execution mode', required=True)
 
     scanmode = mode_subparser.add_parser(name='scan', help='Scan mode: execute plugins on target')
     scanmode.add_argument('-p', '--plugins', metavar='dir', action='store', default=DEFAULT_PLUGIN_DIR, help='path to plugins directory')
