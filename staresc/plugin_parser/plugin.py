@@ -103,11 +103,6 @@ class Plugin:
             msg = "no test specified or invalid syntax"
             raise PluginError(msg)
 
-        if "distr_matcher" in plugin_content:
-            self.distribution_matcher = plugin_content["distr_matcher"]
-        else:
-            self.distribution_matcher = ".*"
-
         self.tests = []
         for test_content in test_list:
             self.tests.append(Test(test_content))
