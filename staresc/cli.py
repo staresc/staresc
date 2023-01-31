@@ -21,13 +21,14 @@ def parse() -> argparse.Namespace:
     parser.add_argument('-nb', '--nobanner', action='store_true', default=False, help='hide banner')
     parser.add_argument('-t', '--timeout', action='store', default=None, help='set timeout for connections')
 
-    maingroup = parser.add_mutually_exclusive_group(required=True)
+    maingroup = parser.add_mutually_exclusive_group()
     maingroup.add_argument('-f',  '--file',       metavar='F', action='store', default='', help='input file containing 1 connection string per line' )
     maingroup.add_argument('-cs', '--connection', metavar='CS', action='store', default='', help='connection string' )
-    maingroup.add_argument('--test', action='store_true', default=False, help='test staresc integrity')
     maingroup.add_argument('-v',  '--version',  action='store_true', default=False, help='print version and exit')
 
     mode_subparser = parser.add_subparsers(dest='mode', help='Staresc execution mode', required=True)
+
+    mode_subparser.add_parser(name='test', help='Scan mode: execute plugins on target')
 
     scanmode = mode_subparser.add_parser(name='scan', help='Scan mode: execute plugins on target')
     scanmode.add_argument('-p', '--plugins', metavar='dir', action='store', default=DEFAULT_PLUGIN_DIR, help='path to plugins directory')

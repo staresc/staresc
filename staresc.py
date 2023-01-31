@@ -41,7 +41,7 @@ def main() -> int:
     # not a subcommand, but test staresc integrity by spawning an SSH server
     # and launching pre-determined commands against it to test how staresc
     # would deal with it.
-    if args.test: 
+    if args.mode == 'test':
         return Tester().test()
 
     try:     
